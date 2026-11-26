@@ -265,6 +265,7 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
 .view-meta .view-value{color:var(--ink);font-size:15px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="/brickbybrick-enhancements.css">
 </head>
 <body>
 <div class="wrap">
@@ -285,11 +286,32 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
   </header>
 
   <nav class="tabs" aria-label="Separadores do orçamento">
-    <button type="button" class="tab-btn active" data-tab="orcamento-panel">Orçamento da obra</button>
+    <button type="button" class="tab-btn active" data-tab="dashboard-panel">Visão geral</button>
+    <button type="button" class="tab-btn" data-tab="orcamento-panel">Orçamento da obra</button>
     <button type="button" class="tab-btn" data-tab="moveis-panel">Móveis por divisão</button>
+    <button type="button" class="tab-btn" data-tab="analysis-panel">Análise</button>
+    <button type="button" class="tab-btn" data-tab="history-panel">Histórico</button>
+    <button type="button" class="tab-btn" data-tab="management-panel">Gestão e segurança</button>
   </nav>
 
-  <main id="orcamento-panel" class="tab-panel">
+  <section id="dashboard-panel" class="tab-panel">
+    <div class="bb-page-head"><div><h2>Visão geral</h2><p>O estado atual da remodelação e do orçamento, num só lugar.</p></div></div>
+    <div class="bb-kpi-grid">
+      <article class="bb-kpi"><small>Orçamento da obra</small><strong id="bb-kpi-work">—</strong><span>Trabalhos selecionados</span></article>
+      <article class="bb-kpi"><small>Móveis e equipamentos</small><strong id="bb-kpi-furniture">—</strong><span>Artigos incluídos</span></article>
+      <article class="bb-kpi"><small>Total combinado</small><strong id="bb-kpi-combined">—</strong><span>Obra + móveis, sem IVA</span></article>
+      <article class="bb-kpi"><small>Artigos registados</small><strong id="bb-kpi-items">—</strong><span id="bb-kpi-items-sub">A carregar artigos</span></article>
+    </div>
+    <h3>Atalhos</h3>
+    <div class="bb-shortcuts">
+      <button type="button" class="bb-shortcut" data-bb-go="moveis-panel"><span><strong>Gerir móveis</strong><small>Consultar e atualizar artigos por divisão</small></span><span aria-hidden="true">→</span></button>
+      <button type="button" class="bb-shortcut" data-bb-go="analysis-panel"><span><strong>Analisar orçamento</strong><small>Ver custos e distribuição por divisão</small></span><span aria-hidden="true">→</span></button>
+      <button type="button" class="bb-shortcut" data-bb-go="management-panel"><span><strong>Cópias de segurança</strong><small>Exportar ou recuperar os teus dados</small></span><span aria-hidden="true">→</span></button>
+    </div>
+    <h3>Resumo por divisão</h3><div id="bb-room-overview" class="bb-room-overview"></div>
+  </section>
+
+  <main id="orcamento-panel" class="tab-panel" hidden>
   <div class="totalband">
     <div><small>Total do orçamento selecionado</small><div class="total" id="grand-total">27.913,85 €</div></div>
     <span class="pill">Sem IVA</span>
@@ -538,7 +560,39 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
     <div class="furniture-totalband"><div><small>Total de móveis</small><div id="furniture-grand-total" class="furniture-grand">0,00 €</div></div></div>
     <div class="furniture-totalband"><div><small>Obra + móveis</small><div id="combined-grand-total" class="furniture-grand">27.913,85 €</div><small>Sem IVA; inclui o total atual da obra e os móveis registados.</small></div></div>
   </section>
-  <div class="foot">Documento de organização do orçamento fornecido pela VanaConst, com data de 19/10/2026. Os subtotais foram agrupados para facilitar a consulta; para contratação, prevalecem a proposta final e as medições confirmadas pelo empreiteiro.</div>
+    <section id="analysis-panel" class="tab-panel" hidden>
+    <div class="bb-page-head"><div><h2>Análise financeira</h2><p>Distribuição dos custos com base nos valores atualmente selecionados.</p></div></div>
+    <div class="bb-kpi-grid">
+      <article class="bb-kpi"><small>Total da obra</small><strong id="bb-analysis-work-total">—</strong><span>Sem IVA</span></article>
+      <article class="bb-kpi"><small>Total de móveis</small><strong id="bb-analysis-furniture-total">—</strong><span>Artigos incluídos</span></article>
+      <article class="bb-kpi"><small>Total combinado</small><strong id="bb-analysis-combined-total">—</strong><span>Obra + móveis</span></article>
+      <article class="bb-kpi"><small>Distribuição</small><strong id="bb-analysis-ratio">—</strong><span>Percentagem de móveis no total</span></article>
+      <article class="bb-kpi"><small>Valor estimado dos artigos comprados</small><strong id="bb-analysis-purchased-total">—</strong><span>Artigos assinalados como concluídos</span></article>
+      <article class="bb-kpi"><small>Valor efetivamente pago</small><strong id="bb-analysis-actual-total">—</strong><span>Valores reais introduzidos nos detalhes</span></article>
+      <article class="bb-kpi"><small>Diferença vs estimativa</small><strong id="bb-analysis-variance">—</strong><span>Nos artigos com valor pago registado</span></article>
+    </div>
+    <div class="bb-analysis-grid">
+      <article class="bb-analysis-card"><h3>Custo de móveis por divisão</h3><p>Valores dos artigos incluídos em cada divisão.</p><div id="bb-analysis-rooms" class="bb-chart-list"></div></article>
+      <article class="bb-analysis-card"><h3>Orçamento da obra por categoria</h3><p>Valores atualmente selecionados no orçamento.</p><div id="bb-analysis-work" class="bb-chart-list"></div></article>
+      <article class="bb-analysis-card"><h3>Estimativa vs valor efetivamente pago</h3><p>Comparação dos artigos para os quais foi registado um valor real.</p><div id="bb-analysis-spend-comparison" class="bb-chart-list"></div></article>
+    </div>
+    <p id="bb-analysis-note" class="bb-management-note"></p>
+  </section>
+  <section id="history-panel" class="tab-panel" hidden>
+    <div class="bb-page-head"><div><h2>Histórico de alterações</h2><p>Consulta versões anteriores e recupera um estado guardado.</p></div></div>
+    <div class="bb-management-note">O histórico guarda versões anteriores no próprio registo partilhado. As recuperações são sincronizadas como uma nova alteração, sem apagar o histórico existente.</div>
+    <div id="bb-history-list" class="bb-history-list"></div>
+  </section>
+  <section id="management-panel" class="tab-panel" hidden>
+    <div class="bb-page-head"><div><h2>Gestão e segurança</h2><p>Cria uma cópia independente dos dados e recupera-a quando necessário.</p></div></div>
+    <div class="bb-management-grid">
+      <article class="bb-management-card"><h3>Exportar cópia de segurança</h3><p>Descarrega um ficheiro JSON com o orçamento, divisões, artigos, componentes, imagens, estados e histórico.</p><div class="bb-management-actions"><button type="button" id="bb-export-backup" disabled>Descarregar backup</button></div></article>
+      <article class="bb-management-card"><h3>Recuperar uma cópia</h3><p>Importa um backup anterior. Os dados atuais são preservados no histórico antes da recuperação.</p><div class="bb-management-actions"><button type="button" id="bb-import-backup" class="secondary" disabled>Selecionar backup</button><input id="bb-import-backup-file" type="file" accept=".json,application/json" hidden></div></article>
+    </div>
+    <div class="bb-management-note">A sincronização automática existente e o controlo de conflitos são mantidos. A API também tenta criar cópias do estado anterior na tabela de histórico já configurada. Não é necessário alterar a estrutura do Supabase para estas melhorias.</div>
+  </section>
+
+<div class="foot">Documento de organização do orçamento fornecido pela VanaConst, com data de 19/10/2026. Os subtotais foram agrupados para facilitar a consulta; para contratação, prevalecem a proposta final e as medições confirmadas pelo empreiteiro.</div>
 </div>
   <div class="mobile-total-bar" aria-live="polite">
     <div><small>Obra + móveis · sem IVA</small><strong id="mtb-total">—</strong></div>
@@ -754,6 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isChecked = data.checked !== false;
     if (!isChecked) row.classList.add('unselected');
     row.dataset.image = data.image || '';
+    row.dataset.actualPrice = data.actualPrice || '';
     const rowCategory = registerCategory(data.category || 'Móvel');
     let components = Array.isArray(data.links) && data.links.length ? data.links : (data.link ? [data.link] : []);
     components = components.map((component, index) => typeof component === 'string'
@@ -1087,7 +1142,7 @@ function exportFurnitureExcel() {
   const detailRows = [[
     'Divisão','Categoria','Tipo de linha','Artigo','Componente','Link do componente',
     'Tipo de compra','Quantidade do artigo','Estado','Incluído no orçamento',
-    'Quantidade do componente','Preço unitário (€)','Total do componente (€)','Total do artigo (€)'
+    'Quantidade do componente','Preço unitário (€)','Total do componente (€)','Total do artigo (€)','Total efetivamente pago (€)'
   ]];
   const summary = new Map();
   let overallAll = 0, overallSelected = 0;
@@ -1122,10 +1177,10 @@ function exportFurnitureExcel() {
         if (selected) entry.selected += articleTotal;
         overallAll += articleTotal; if (selected) overallSelected += articleTotal;
         // Linha principal: identifica o artigo como unidade independente.
-        detailRows.push([roomName,category,'ARTIGO',name,'','',modeLabel,itemQty,status,selected?'Sim':'Não','','','',articleTotal]);
+        detailRows.push([roomName,category,'ARTIGO',name,'','',modeLabel,itemQty,status,selected?'Sim':'Não','','','',articleTotal,Number(row.dataset.actualPrice)||'']);
         // Linhas subordinadas: componentes e respetivos links/preços.
         components.forEach(component => {
-          detailRows.push([roomName,category,'Componente','',component.name,component.url,modeLabel,itemQty,status,selected?'Sim':'Não',component.qty,component.price,component.qty*component.price,'']);
+          detailRows.push([roomName,category,'Componente','',component.name,component.url,modeLabel,itemQty,status,selected?'Sim':'Não',component.qty,component.price,component.qty*component.price,'','']);
         });
       });
     });
@@ -1135,15 +1190,15 @@ function exportFurnitureExcel() {
   Array.from(summary.values()).forEach(e => summaryRows.push([e.room,e.category,e.count,e.all,e.selected]));
   summaryRows.push(['TOTAL GERAL','',Array.from(summary.values()).reduce((n,e)=>n+e.count,0),overallAll,overallSelected]);
   const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
-  detailSheet['!cols'] = [{wch:19},{wch:24},{wch:15},{wch:30},{wch:28},{wch:48},{wch:24},{wch:17},{wch:16},{wch:23},{wch:19},{wch:18},{wch:22},{wch:20}];
-  detailSheet['!autofilter'] = {ref:'A1:N'+detailRows.length};
+  detailSheet['!cols'] = [{wch:19},{wch:24},{wch:15},{wch:30},{wch:28},{wch:48},{wch:24},{wch:17},{wch:16},{wch:23},{wch:19},{wch:18},{wch:22},{wch:20},{wch:24}];
+  detailSheet['!autofilter'] = {ref:'A1:O'+detailRows.length};
   for(let r=1;r<detailRows.length;r++){
     const link=detailRows[r][5];
     if(link && /^https?:\/\//i.test(link)){
       const cell=detailSheet[XLSX.utils.encode_cell({r,c:5})];
       if(cell) cell.l={Target:link,Tooltip:'Abrir link do componente'};
     }
-    [11,12,13].forEach(c=>{
+    [11,12,13,14].forEach(c=>{
       const cell=detailSheet[XLSX.utils.encode_cell({r,c})];
       if(cell && typeof cell.v==='number') cell.z='#,##0.00 [$€-pt-PT]';
     });
@@ -1200,7 +1255,7 @@ function parseFurnitureWorkbook(file) {
             const category=String(get(r,'Categoria')).trim() || 'Móvel';
             const article=String(get(r,'Artigo')).trim();
             if(type==='ARTIGO'){
-              current={room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',links:[]};
+              current={room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',actualPrice:get(r,'Total efetivamente pago (€)')===''?undefined:num(get(r,'Total efetivamente pago (€)')),links:[]};
               if(!room||!article) current=null; else imported.push(current);
             } else if(type==='COMPONENTE' && current){
               const name=String(get(r,'Componente')).trim(),url=String(get(r,'Link do componente')).trim();
@@ -1227,6 +1282,7 @@ function mergeImportedFurniture(existingRooms, incoming) {
     const match=room.items.find(item=>normalizeImportKey(item.name)===key && normalizeImportKey(item.category||'Móvel')===normalizeImportKey(entry.category))
       || room.items.find(item=>normalizeImportKey(item.name)===key);
     const replacement={name:entry.name,category:entry.category,mode:entry.mode,qty:String(entry.qty),checked:entry.checked,done:entry.done,links:entry.links.length?entry.links:[{name:'',url:'',qty:1,price:0}]};
+    if(entry.actualPrice!==undefined)replacement.actualPrice=entry.actualPrice;
     if(match){Object.assign(match,replacement);updated++;}
     else{room.items.push(replacement);added++;}
   });
@@ -1257,7 +1313,7 @@ function getCurrentFurnitureRooms(){
     items:Array.from(room.querySelectorAll('.furniture-table tbody tr')).map(row=>({
       name:row.querySelector('.furniture-name')?.value||'',
       checked:row.querySelector('.item-check-furn')?.checked!==false,
-      image:row.dataset.image||'',
+      image:row.dataset.image||'',actualPrice:row.dataset.actualPrice||'',
       category:row.querySelector('.furniture-category')?.value||'Móvel',
       mode:row.querySelector('.purchase-mode')?.value||'complete',
       links:Array.from(row.querySelectorAll('.furniture-link-row')).map(c=>({name:c.querySelector('.component-name')?.value||'',url:c.querySelector('.furniture-link')?.value||'',qty:c.querySelector('.component-qty')?.value||'1',price:c.querySelector('.component-price')?.value||'0'})),
@@ -1300,6 +1356,8 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
   let retryTimer = null;
   let saveTimer = null;
   let lastSavedSnapshot = '';
+  let historyLog = [];
+  let forceHistoryCapture = false;
 
   const statusEl = () => document.getElementById('cloud-save-status');
   function setCloudStatus(message, isError = false) {
@@ -1321,6 +1379,7 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
         name: row.querySelector('.furniture-name')?.value || '',
         checked: row.querySelector('.item-check-furn') ? row.querySelector('.item-check-furn').checked : true,
         image: row.dataset.image || '',
+        actualPrice: row.dataset.actualPrice || '',
         category: row.querySelector('.furniture-category')?.value || 'Móvel',
         link: row.querySelector('.furniture-link')?.value || '',
         mode: row.querySelector('.purchase-mode')?.value || 'complete',
@@ -1334,7 +1393,7 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
       id: card.id,
       collapsed: card.classList.contains('collapsed')
     }));
-    return { checks, rooms, cards, hallAdded: true };
+    return { checks, rooms, cards, hallAdded: true, history: historyLog };
   }
   function collapseAllFurnitureGroups() {
     // ao abrir o site, todos os cartões de categoria de móveis ficam fechados
@@ -1404,6 +1463,22 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
       renderRoomWithSubtitles(room);
     });
   }
+  window.__bbGetSnapshot = () => getSnapshot();
+  window.__bbGetHistory = () => historyLog;
+  window.__bbApplySnapshot = function (state) {
+    if (!state || !Array.isArray(state.rooms) || !state.rooms.length || !state.rooms.every(room => room && Array.isArray(room.items) && room.items.every(item => item && typeof item === 'object' && !Array.isArray(item)))) return false;
+    loadingCloudData = true;
+    forceHistoryCapture = true;
+    if (Array.isArray(state.checks)) document.querySelectorAll('.item-check').forEach((el,index) => { const saved=state.checks.find(item=>item && item.index===index); if(saved){el.checked=!!saved.checked;const input=el.closest('tr')?.querySelector('.val-input');if(input&&saved.value!=null)input.value=saved.value;} });
+    if (Array.isArray(state.cards)) state.cards.forEach(item=>{if(!item||!item.id)return;const card=document.getElementById(item.id);if(card)card.classList.toggle('collapsed',!!item.collapsed);});
+    renderRooms(state.rooms); collapseAllFurnitureGroups();
+    if (typeof updateCalculations === 'function') updateCalculations();
+    if (typeof updateFurnitureTotals === 'function') updateFurnitureTotals();
+    loadingCloudData = false;
+    const trigger=document.querySelector('#furniture-rooms .furniture-name')||document.querySelector('#furniture-rooms .room-title');
+    if(trigger)trigger.dispatchEvent(new Event('input',{bubbles:true}));
+    return true;
+  };
   async function loadCloudData() {
     try {
       setCloudStatus('A carregar dados online…');
@@ -1415,10 +1490,11 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
       const data = result && result.data;
       if (!data || typeof data !== 'object' || Array.isArray(data) ||
           !Array.isArray(data.rooms) || data.rooms.length === 0 ||
-          !data.rooms.every(room => room && typeof room === 'object' && Array.isArray(room.items)) ||
+          !data.rooms.every(room => room && typeof room === 'object' && Array.isArray(room.items) && room.items.every(item => item && typeof item === 'object' && !Array.isArray(item))) ||
           !result.version) {
         throw new Error('A API não devolveu um estado válido do orçamento (divisões ou versão em falta).');
       }
+      historyLog = Array.isArray(data.history) ? data.history.filter(entry => entry && entry.data && Array.isArray(entry.data.rooms)).slice(0,8) : [];
       loadingCloudData = true;
         if (Array.isArray(data.checks)) {
           document.querySelectorAll('.item-check').forEach((el, index) => {
@@ -1484,6 +1560,19 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
   }
   async function doSaveCloudData() {
     const snapshot = getSnapshot();
+    // Agrupa pequenas edições consecutivas numa única versão recuperável.
+    let previous = null;
+    try { previous = lastSavedSnapshot ? JSON.parse(lastSavedSnapshot) : null; } catch (_) {}
+    const comparable = value => ({ checks: value.checks || [], rooms: value.rooms || [], cards: value.cards || [], hallAdded: value.hallAdded !== false });
+    if (previous && JSON.stringify(comparable(previous)) !== JSON.stringify(comparable(snapshot))) {
+      const lastAt = historyLog.length ? Date.parse(historyLog[0].at || '') : 0;
+      if (!lastAt || Date.now() - lastAt > 30000 || forceHistoryCapture) {
+        historyLog.unshift({ id: Date.now(), at: new Date().toISOString(), label: 'Versão anterior do orçamento', data: comparable(previous) });
+        historyLog = historyLog.slice(0, 8);
+        forceHistoryCapture = false;
+      }
+    }
+    snapshot.history = historyLog;
     // Proteção adicional: nunca enviar para o Supabase um estado sem divisões.
     if (!Array.isArray(snapshot.rooms) || snapshot.rooms.length === 0 ||
         !snapshot.rooms.every(room => room && Array.isArray(room.items))) {
@@ -1583,5 +1672,6 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
   else init();
 })();
 </script>
+  <script src="/brickbybrick-enhancements.js" defer></script>
 </body>
 </html>
