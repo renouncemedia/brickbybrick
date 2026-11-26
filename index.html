@@ -1336,7 +1336,6 @@ document.getElementById('export-furniture-excel')?.addEventListener('click', exp
         if (typeof updateCalculations === 'function') updateCalculations();
         if (typeof updateFurnitureTotals === 'function') updateFurnitureTotals();
         loadingCloudData = false;
-      }
       baseVersion = result.version;
       lastSavedSnapshot = JSON.stringify(getSnapshot());
       cloudReady = true;
