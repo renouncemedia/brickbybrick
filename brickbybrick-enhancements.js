@@ -145,7 +145,14 @@
       const current=safeImageUrl(row.dataset.image||'');if(current){image.src=current;image.hidden=false;imageInput.value=current;}
       const fetchButton=document.createElement('button');fetchButton.type='button';fetchButton.className='bb-fetch-product-image';fetchButton.textContent='Obter do link do produto';
       const fetchStatus=document.createElement('span');fetchStatus.className='bb-image-fetch-status';fetchStatus.setAttribute('aria-live','polite');
-      editor.append(image,imageInput,fetchButton,fetchStatus);firstCell.appendChild(editor);
+      const editPhoto=document.createElement('button');editPhoto.type='button';editPhoto.className='bb-photo-toggle';editPhoto.textContent='Fotografia';editPhoto.setAttribute('aria-expanded','false');
+      editPhoto.addEventListener('click',()=>{
+        const editing=editor.classList.toggle('is-editing');
+        editPhoto.setAttribute('aria-expanded',String(editing));
+        editPhoto.textContent=editing?'Fechar':'Fotografia';
+        if(editing)imageInput.focus();
+      });
+      editor.append(image,imageInput,fetchButton,fetchStatus);firstCell.append(editPhoto,editor);
       fetchButton.addEventListener('click',async()=>{
         const links=$('.furniture-link-row .furniture-link',row).map(input=>safeUrl(input.value)).filter(Boolean);
         if(!links.length){fetchStatus.textContent='Adiciona primeiro o link do produto.';return;}
@@ -179,6 +186,11 @@
       imageInput.addEventListener('change',async()=>{
         const source=safeImageUrl(imageInput.value);
         if(!source)return;
+        if(source.startsWith('/')){
+          try{await verifyImage(source);row.dataset.image=source;image.src=source;image.hidden=false;emitSave($('.furniture-name',row));fetchStatus.textContent='Fotografia carregada e guardada no artigo.';}
+          catch(error){fetchStatus.textContent=error.message;}
+          return;
+        }
         fetchStatus.textContent='A validar fotografia…';
         try{
           const response=await fetch('/api/product-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:source})});
