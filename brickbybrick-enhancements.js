@@ -18,7 +18,8 @@
     const searchMarkup='<div class="bb-global-tools"><div class="bb-search-wrap"><span class="bb-search-icon" aria-hidden="true">⌕</span><input id="bb-global-search" type="search" placeholder="Pesquisar qualquer móvel, artigo ou trabalho…" autocomplete="off" aria-label="Pesquisa global"><div id="bb-search-results" class="bb-search-results" role="listbox"></div></div><div class="bb-global-hint">Pesquisa em todo o orçamento e em todas as divisões</div></div>';
     nav.insertAdjacentHTML('afterend',searchMarkup);
   }
-  $$('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+  $('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+  document.addEventListener('click',event=>{const shortcut=event.target.closest('[data-bb-go]');if(shortcut)activateTab(shortcut.dataset.bbGo);});
   document.addEventListener('click',event=>{ if(!event.target.closest('.bb-search-wrap')) $('#bb-search-results')?.classList.remove('is-open'); });
   const globalSearch = $('#bb-global-search');
   const resultsBox = $('#bb-search-results');
