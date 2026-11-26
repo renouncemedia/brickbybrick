@@ -157,7 +157,7 @@
     const details=event.target.closest('.bb-details');if(details){showArticleDetails(details.closest('tr'));return;}
     const duplicate=event.target.closest('.bb-duplicate');if(!duplicate)return;
     const row=duplicate.closest('tr');if(!row)return;
-    const copy=row.cloneNode(true);copy.dataset.bbEnhanced='1';copy.classList.remove('is-done','unselected');
+    const copy=row.cloneNode(true);copy.dataset.bbEnhanced='1';copy.classList.remove('is-done','unselected');$('.bb-photo-editor',copy)?.remove();delete copy.dataset.bbEnhanced;
     $$( '.view-val',copy).forEach(el=>el.remove());
     const nameCell=copy.children[0];if(nameCell)nameCell.colSpan=1;
     const toggle=$('.toggle-furniture',copy);if(toggle){toggle.textContent='✓';toggle.title='Guardar móvel';}
