@@ -1141,7 +1141,7 @@ function exportFurnitureExcel() {
   const detailRows = [[
     'Divisão','Categoria','Tipo de linha','Artigo','Componente','Link do componente',
     'Tipo de compra','Quantidade do artigo','Estado','Incluído no orçamento',
-    'Quantidade do componente','Preço unitário (€)','Total do componente (€)','Total do artigo (€)'
+    'Quantidade do componente','Preço unitário (€)','Total do componente (€)','Total do artigo (€)','Total efetivamente pago (€)'
   ]];
   const summary = new Map();
   let overallAll = 0, overallSelected = 0;
@@ -1176,10 +1176,10 @@ function exportFurnitureExcel() {
         if (selected) entry.selected += articleTotal;
         overallAll += articleTotal; if (selected) overallSelected += articleTotal;
         // Linha principal: identifica o artigo como unidade independente.
-        detailRows.push([roomName,category,'ARTIGO',name,'','',modeLabel,itemQty,status,selected?'Sim':'Não','','','',articleTotal]);
+        detailRows.push([roomName,category,'ARTIGO',name,'','',modeLabel,itemQty,status,selected?'Sim':'Não','','','',articleTotal,Number(row.dataset.actualPrice)||'']);
         // Linhas subordinadas: componentes e respetivos links/preços.
         components.forEach(component => {
-          detailRows.push([roomName,category,'Componente','',component.name,component.url,modeLabel,itemQty,status,selected?'Sim':'Não',component.qty,component.price,component.qty*component.price,'']);
+          detailRows.push([roomName,category,'Componente','',component.name,component.url,modeLabel,itemQty,status,selected?'Sim':'Não',component.qty,component.price,component.qty*component.price,'','']);
         });
       });
     });
@@ -1189,15 +1189,15 @@ function exportFurnitureExcel() {
   Array.from(summary.values()).forEach(e => summaryRows.push([e.room,e.category,e.count,e.all,e.selected]));
   summaryRows.push(['TOTAL GERAL','',Array.from(summary.values()).reduce((n,e)=>n+e.count,0),overallAll,overallSelected]);
   const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
-  detailSheet['!cols'] = [{wch:19},{wch:24},{wch:15},{wch:30},{wch:28},{wch:48},{wch:24},{wch:17},{wch:16},{wch:23},{wch:19},{wch:18},{wch:22},{wch:20}];
-  detailSheet['!autofilter'] = {ref:'A1:N'+detailRows.length};
+  detailSheet['!cols'] = [{wch:19},{wch:24},{wch:15},{wch:30},{wch:28},{wch:48},{wch:24},{wch:17},{wch:16},{wch:23},{wch:19},{wch:18},{wch:22},{wch:20},{wch:24}];
+  detailSheet['!autofilter'] = {ref:'A1:O'+detailRows.length};
   for(let r=1;r<detailRows.length;r++){
     const link=detailRows[r][5];
     if(link && /^https?:\/\//i.test(link)){
       const cell=detailSheet[XLSX.utils.encode_cell({r,c:5})];
       if(cell) cell.l={Target:link,Tooltip:'Abrir link do componente'};
     }
-    [11,12,13].forEach(c=>{
+    [11,12,13,14].forEach(c=>{
       const cell=detailSheet[XLSX.utils.encode_cell({r,c})];
       if(cell && typeof cell.v==='number') cell.z='#,##0.00 [$€-pt-PT]';
     });
@@ -1254,7 +1254,7 @@ function parseFurnitureWorkbook(file) {
             const category=String(get(r,'Categoria')).trim() || 'Móvel';
             const article=String(get(r,'Artigo')).trim();
             if(type==='ARTIGO'){
-              current={room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',links:[]};
+              current={room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',actualPrice:get(r,'Total efetivamente pago (€)')===''?undefined:num(get(r,'Total efetivamente pago (€)')),links:[]};
               if(!room||!article) current=null; else imported.push(current);
             } else if(type==='COMPONENTE' && current){
               const name=String(get(r,'Componente')).trim(),url=String(get(r,'Link do componente')).trim();
@@ -1281,6 +1281,7 @@ function mergeImportedFurniture(existingRooms, incoming) {
     const match=room.items.find(item=>normalizeImportKey(item.name)===key && normalizeImportKey(item.category||'Móvel')===normalizeImportKey(entry.category))
       || room.items.find(item=>normalizeImportKey(item.name)===key);
     const replacement={name:entry.name,category:entry.category,mode:entry.mode,qty:String(entry.qty),checked:entry.checked,done:entry.done,links:entry.links.length?entry.links:[{name:'',url:'',qty:1,price:0}]};
+    if(entry.actualPrice!==undefined)replacement.actualPrice=entry.actualPrice;
     if(match){Object.assign(match,replacement);updated++;}
     else{room.items.push(replacement);added++;}
   });
