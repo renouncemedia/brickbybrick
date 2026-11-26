@@ -163,9 +163,22 @@
         if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}
         emitSave($('.furniture-name',row));
       });
-      image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';});
+      imageInput.addEventListener('change',async()=>{
+        const source=safeUrl(imageInput.value);
+        if(!source)return;
+        fetchStatus.textContent='A validar fotografia…';
+        try{
+          const response=await fetch('/api/product-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:source})});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok||!data.image)throw new Error(data.error||'Não foi possível obter a fotografia.');
+          imageInput.value=data.image;row.dataset.image=data.image;image.src=data.image;image.hidden=false;
+          emitSave($('.furniture-name',row));
+          fetchStatus.textContent='Fotografia pronta e guardada.';
+        }catch(error){fetchStatus.textContent='Não foi possível validar este endereço: '+error.message;}
+      });
+      image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';fetchStatus.textContent='A imagem não está acessível. Experimenta validar o link.';});
     }
-    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';line.prepend(preview);}}
+    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';preview.addEventListener('error',()=>{preview.hidden=true;});line.prepend(preview);}}
     const lastCell=row.lastElementChild;
     updateCompleteness(row);
     if(lastCell&&!$('.bb-duplicate',lastCell)){
