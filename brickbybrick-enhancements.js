@@ -8,8 +8,8 @@
   const safeUrl = value => { try { const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
   const emitSave = element => { const target=element||$('.furniture-name'); if(target) target.dispatchEvent(new Event('input',{bubbles:true})); };
   const activateTab = id => {
-    $$$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
-    $$$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
+    $$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
+    $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
     const panel=$('#'+id); if(panel) panel.scrollIntoView({block:'start',behavior:'smooth'});
     refreshAll();
   };
@@ -18,25 +18,25 @@
     const searchMarkup='<div class="bb-global-tools"><div class="bb-search-wrap"><span class="bb-search-icon" aria-hidden="true">⌕</span><input id="bb-global-search" type="search" placeholder="Pesquisar qualquer móvel, artigo ou trabalho…" autocomplete="off" aria-label="Pesquisa global"><div id="bb-search-results" class="bb-search-results" role="listbox"></div></div><div class="bb-global-hint">Pesquisa em todo o orçamento e em todas as divisões</div></div>';
     nav.insertAdjacentHTML('afterend',searchMarkup);
   }
-  $$$('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+  $$('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
   document.addEventListener('click',event=>{ if(!event.target.closest('.bb-search-wrap')) $('#bb-search-results')?.classList.remove('is-open'); });
   const globalSearch = $('#bb-global-search');
   const resultsBox = $('#bb-search-results');
   function searchIndex(query){
     const q=query.trim().toLocaleLowerCase('pt-PT'); if(!q)return [];
     const results=[];
-    $$$('#furniture-rooms .room-furniture').forEach(room=>{
+    $$('#furniture-rooms .room-furniture').forEach(room=>{
       const roomName=$('.room-title',room)?.textContent.trim()||'Divisão';
-      $$$('tbody tr',room).forEach(row=>{
+      $$('tbody tr',room).forEach(row=>{
         const name=$('.furniture-name',row)?.value||'';
         const category=$('.furniture-category',row)?.value||'';
-        const components=$$$('.component-name',row).map(x=>x.value).join(' ');
-        const links=$$$('.furniture-link',row).map(x=>x.value).join(' ');
+        const components=$$('.component-name',row).map(x=>x.value).join(' ');
+        const links=$$('.furniture-link',row).map(x=>x.value).join(' ');
         const text=[name,category,roomName,components,links].join(' ').toLocaleLowerCase('pt-PT');
         if(text.includes(q))results.push({kind:'furniture',name:name||'Artigo sem nome',meta:roomName+' · '+category,row,room});
       });
     });
-    $$$('.calc-table tbody tr').forEach(row=>{
+    $$('.calc-table tbody tr').forEach(row=>{
       const text=row.textContent.toLocaleLowerCase('pt-PT');
       if(text.includes(q))results.push({kind:'budget',name:row.textContent.trim().replace(/\s+/g,' ').slice(0,130),meta:'Orçamento da obra',row});
     });
@@ -80,8 +80,8 @@
   function refreshFilterOptions(){
     const roomSelect=$('#bb-filter-room'),catSelect=$('#bb-filter-category');if(!roomSelect||!catSelect)return;
     const roomValue=roomSelect.value,catValue=catSelect.value;
-    const rooms=$$$('#furniture-rooms .room-furniture').map(r=>$('.room-title',r)?.textContent.trim()).filter(Boolean);
-    const cats=Array.from(new Set($$$('#furniture-rooms .furniture-category').map(s=>s.value).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt'));
+    const rooms=$$('#furniture-rooms .room-furniture').map(r=>$('.room-title',r)?.textContent.trim()).filter(Boolean);
+    const cats=Array.from(new Set($$('#furniture-rooms .furniture-category').map(s=>s.value).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt'));
     roomSelect.innerHTML='<option value="">Todas as divisões</option>'+rooms.map(x=>'<option></option>').join('');
     Array.from(roomSelect.options).slice(1).forEach((o,i)=>{o.value=rooms[i];o.textContent=rooms[i];});
     catSelect.innerHTML='<option value="">Todas as categorias</option>'+cats.map(x=>'<option></option>').join('');
@@ -95,17 +95,17 @@
     const min=minRaw===''?-Infinity:Number(minRaw),max=maxRaw===''?Infinity:Number(maxRaw);
     const sortMode=$('#bb-filter-sort')?.value||'';
     let shown=0,total=0;
-    $$$('#furniture-rooms .room-furniture').forEach(room=>{
+    $$('#furniture-rooms .room-furniture').forEach(room=>{
       const roomName=$('.room-title',room)?.textContent.trim()||'';
       let roomHas=false;
       $$( '.category-group',room).forEach(group=>{
         const tbody=$('tbody',group);if(tbody&&sortMode){const rows=$$('tr',tbody);rows.sort((a,b)=>{if(sortMode==='name')return ($('.furniture-name',a)?.value||'').localeCompare($('.furniture-name',b)?.value||'','pt');const av=sortMode.startsWith('qty')?Number($('.furniture-qty',a)?.value||0):parseEuro(a.dataset.line||$('.line-total',a)?.textContent);const bv=sortMode.startsWith('qty')?Number($('.furniture-qty',b)?.value||0):parseEuro(b.dataset.line||$('.line-total',b)?.textContent);return sortMode.endsWith('asc')?av-bv:bv-av;});rows.forEach(row=>tbody.appendChild(row));}
         let groupHas=false;
-        $$$('tbody tr',group).forEach(row=>{
+        $$('tbody tr',group).forEach(row=>{
           total++;
           const name=$('.furniture-name',row)?.value||'';
           const category=$('.furniture-category',row)?.value||'';
-          const comp=$$$('.component-name',row).map(x=>x.value).join(' ');
+          const comp=$$('.component-name',row).map(x=>x.value).join(' ');
           const text=(name+' '+category+' '+comp+' '+roomName).toLocaleLowerCase('pt-PT');
           const line=parseEuro(row.dataset.line||$('.line-total',row)?.textContent);
           const ok=(!query||text.includes(query))&&(!roomFilter||roomFilter===roomName)&&(!catFilter||catFilter===category)&&line>=min&&line<=max;
@@ -157,7 +157,7 @@
     const duplicate=event.target.closest('.bb-duplicate');if(!duplicate)return;
     const row=duplicate.closest('tr');if(!row)return;
     const copy=row.cloneNode(true);copy.dataset.bbEnhanced='1';copy.classList.remove('is-done','unselected');
-    $$$( '.view-val',copy).forEach(el=>el.remove());
+    $$( '.view-val',copy).forEach(el=>el.remove());
     const nameCell=copy.children[0];if(nameCell)nameCell.colSpan=1;
     const toggle=$('.toggle-furniture',copy);if(toggle){toggle.textContent='✓';toggle.title='Guardar móvel';}
     const group=row.closest('.category-group');const body=group?.querySelector('tbody');
@@ -171,8 +171,8 @@
   function moneyFromId(id){return parseEuro($('#'+id)?.textContent||'0');}
   function renderDashboard(){
     const work=moneyFromId('grand-total'),furn=moneyFromId('furniture-grand-total'),combined=moneyFromId('combined-grand-total');
-    const rooms=$$$('#furniture-rooms .room-furniture');
-    const rows=$$$('#furniture-rooms tbody tr');
+    const rooms=$$('#furniture-rooms .room-furniture');
+    const rows=$$('#furniture-rooms tbody tr');
     const done=rows.filter(r=>r.classList.contains('is-done')).length;
     const set=(id,value)=>{const el=$('#'+id);if(el)el.textContent=value;};
     set('bb-kpi-work',euro(work));set('bb-kpi-furniture',euro(furn));set('bb-kpi-combined',euro(combined));
@@ -181,7 +181,7 @@
     rooms.forEach(room=>{
       const card=document.createElement('div');card.className='bb-room-card';
       const title=$('.room-title',room)?.textContent.trim()||'Divisão';
-      const count=$$$('tbody tr',room).length;
+      const count=$$('tbody tr',room).length;
       card.innerHTML='<strong></strong><small></small>';
       $('strong',card).textContent=title;$('small',card).textContent=count+' artigo(s) · '+($('.room-total',room)?.textContent||euro(0));
       overview.appendChild(card);
@@ -200,7 +200,7 @@
     });
   }
   function renderAnalysis(){
-    const rooms=$$$('#furniture-rooms .room-furniture').map(room=>({label:$('.room-title',room)?.textContent.trim()||'Divisão',value:parseEuro($('.room-total',room)?.textContent)})).sort((a,b)=>b.value-a.value);
+    const rooms=$$('#furniture-rooms .room-furniture').map(room=>({label:$('.room-title',room)?.textContent.trim()||'Divisão',value:parseEuro($('.room-total',room)?.textContent)})).sort((a,b)=>b.value-a.value);
     const ids=[['Cozinha','summary-cozinha'],['Casa de banho','summary-wc'],['Sala, quartos e hall','summary-pavi'],['Marquise','summary-marquise'],['Varandas','summary-varandas'],['Portas e roupeiro','summary-portas'],['Trabalhos gerais','summary-gerais']];
     const work=ids.map(([label,id])=>({label,value:moneyFromId(id)})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);
     chartRows('bb-analysis-rooms',rooms);chartRows('bb-analysis-work',work);
