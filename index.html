@@ -1181,31 +1181,8 @@ function parseFurnitureWorkbook(file) {
         const imported=[];
         let current=null;
         const num=v=>{if(typeof v==='number') return Math.max(0,v); const n=Number.parseFloat(String(v??'').replace(',','.'));return Number.isFinite(n)&&n>=0?n:0;};
-        rows.slice(1).forEach(r=>{
-          const type=String(get(r,'Tipo de linha')).trim().toUpperCase();
-          const room=String(get(r,'Divisão')).trim();
-          const category=String(get(r,'Categoria')).trim() || 'Móvel';
-          const article=String(get(r,'Artigo')).trim();
-          if(type==='ARTIGO' || (!type && article)){
-            current={
-              room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',
-              qty:num(get(r,'Quantidade do artigo')) || 1,
-              done:normalizeImportKey(get(r,'Estado'))==='comprado',
-              checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',
-              links:[]
-            };
-            if(!room || !article) current=null;
-            else imported.push(current);
-          } else if((type==='COMPONENTE' || (!type && current && (get(r,'Componente') || get(r,'Link do produto')))) && current){
-            const name=String(get(r,'Componente')).trim();
-            const url=String(get(r,'Link do componente') || get(r,'Link do produto')).trim();
-            const qty=num(get(r,'Quantidade do componente')) || 1;
-            const price=num(get(r,'Preço unitário (€)'));
-            if(name || url || price>0) current.links.push({name,url,qty,price});
-          }
-        });
-        // Compatibilidade com o Excel anterior, que repetia o artigo em cada linha de componente.
-        if(!imported.length && col('Tipo de linha')<0){
+        if(col('Tipo de linha')<0){
+          // Compatibilidade com a primeira versão do exportador: uma linha por componente.
           const grouped=new Map();
           rows.slice(1).forEach(r=>{
             const room=String(get(r,'Divisão')).trim(), category=String(get(r,'Categoria')).trim()||'Móvel', name=String(get(r,'Artigo')).trim();
@@ -1216,6 +1193,21 @@ function parseFurnitureWorkbook(file) {
             if(component||url||num(get(r,'Preço unitário (€)'))>0)item.links.push({name:component,url,qty:num(get(r,'Quantidade do componente'))||1,price:num(get(r,'Preço unitário (€)'))});
           });
           imported.push(...grouped.values());
+        } else {
+          rows.slice(1).forEach(r=>{
+            const type=String(get(r,'Tipo de linha')).trim().toUpperCase();
+            const room=String(get(r,'Divisão')).trim();
+            const category=String(get(r,'Categoria')).trim() || 'Móvel';
+            const article=String(get(r,'Artigo')).trim();
+            if(type==='ARTIGO'){
+              current={room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',links:[]};
+              if(!room||!article) current=null; else imported.push(current);
+            } else if(type==='COMPONENTE' && current){
+              const name=String(get(r,'Componente')).trim(),url=String(get(r,'Link do componente')).trim();
+              const qty=num(get(r,'Quantidade do componente'))||1,price=num(get(r,'Preço unitário (€)'));
+              if(name||url||price>0) current.links.push({name,url,qty,price});
+            }
+          });
         }
         if(!imported.length) throw new Error('Não encontrei artigos válidos. Usa um Excel exportado pelo Brick by Brick.');
         resolve(imported);
@@ -1279,7 +1271,7 @@ function confirmFurnitureImport(){
   updateFurnitureTotals();
   const modal=document.getElementById('furniture-import-modal');modal.hidden=true;
   pendingFurnitureImport=null;
-  document.getElementById('furniture-rooms').dispatchEvent(new Event('input',{bubbles:true}));
+  document.querySelector('#furniture-rooms .room-title')?.dispatchEvent(new Event('input',{bubbles:true}));
   document.getElementById('cloud-save-status').textContent='Importação aplicada localmente; a sincronizar…';
 }
 function cancelFurnitureImport(){pendingFurnitureImport=null;document.getElementById('furniture-import-modal').hidden=true;}
