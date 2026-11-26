@@ -214,7 +214,7 @@
     const purchasedValue=allFurnitureRows.filter(row=>row.classList.contains('is-done')).reduce((sum,row)=>sum+parseEuro(row.dataset.line||$('.line-total',row)?.textContent),0);
     const actualSpend=allFurnitureRows.reduce((sum,row)=>sum+Math.max(0,Number(row.dataset.actualPrice)||0),0);
     const actualRows=allFurnitureRows.filter(row=>row.dataset.actualPrice!==undefined&&row.dataset.actualPrice!=='');
-    const expectedForActual=actualRows.reduce((sum,row)=>sum+parseEuro(row.dataset.line||$('.line-total',row)?.textContent),0);
+    const expectedForActual=actualRows.reduce((sum,row)=>sum+parseEuro($('.line-total',row)?.textContent),0);
     const actualVariance=actualSpend-expectedForActual;
     const actualEl=$('#bb-analysis-actual-total');if(actualEl)actualEl.textContent=euro(actualSpend);
     const varianceEl=$('#bb-analysis-variance');if(varianceEl)varianceEl.textContent=(actualVariance>0?'+':'')+euro(actualVariance);
