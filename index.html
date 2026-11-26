@@ -1484,7 +1484,7 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
       const data = result && result.data;
       if (!data || typeof data !== 'object' || Array.isArray(data) ||
           !Array.isArray(data.rooms) || data.rooms.length === 0 ||
-          !data.rooms.every(room => room && typeof room === 'object' && Array.isArray(room.items)) ||
+          !data.rooms.every(room => room && typeof room === 'object' && Array.isArray(room.items) && room.items.every(item => item && typeof item === 'object' && !Array.isArray(item))) ||
           !result.version) {
         throw new Error('A API não devolveu um estado válido do orçamento (divisões ou versão em falta).');
       }
