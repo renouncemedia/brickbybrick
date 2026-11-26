@@ -55,7 +55,7 @@
       button.addEventListener('click',()=>{
         if(item.kind==='furniture'){
           activateTab('moveis-panel');
-          ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max'].forEach(id=>{const control=$('#'+id);if(control)control.value='';});applyFilters();
+          ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max','bb-filter-sort'].forEach(id=>{const control=$('#'+id);if(control)control.value='';});applyFilters();
           item.room.hidden=false;item.room.classList.remove('collapsed');
           const group=item.row.closest('.category-group');if(group){group.hidden=false;group.classList.remove('is-collapsed');const table=$('.furniture-table',group);if(table)table.hidden=false;}
         }else {activateTab('orcamento-panel');const card=item.row.closest('.card');if(card)card.classList.remove('collapsed');}
