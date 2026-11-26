@@ -216,6 +216,7 @@
     const actualRows=allFurnitureRows.filter(row=>row.dataset.actualPrice!==undefined&&row.dataset.actualPrice!=='');
     const expectedForActual=actualRows.reduce((sum,row)=>sum+parseEuro($('.line-total',row)?.textContent),0);
     const actualVariance=actualSpend-expectedForActual;
+    chartRows('bb-analysis-spend-comparison',[{label:'Estimativa',value:expectedForActual},{label:'Valor pago',value:actualSpend}]);
     const actualEl=$('#bb-analysis-actual-total');if(actualEl)actualEl.textContent=euro(actualSpend);
     const varianceEl=$('#bb-analysis-variance');if(varianceEl)varianceEl.textContent=(actualVariance>0?'+':'')+euro(actualVariance);
     const purchasedEl=$('#bb-analysis-purchased-total');if(purchasedEl)purchasedEl.textContent=euro(purchasedValue);
