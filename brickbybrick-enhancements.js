@@ -58,7 +58,7 @@
           ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max'].forEach(id=>{const control=$('#'+id);if(control)control.value='';});applyFilters();
           item.room.hidden=false;item.room.classList.remove('collapsed');
           const group=item.row.closest('.category-group');if(group){group.hidden=false;group.classList.remove('is-collapsed');const table=$('.furniture-table',group);if(table)table.hidden=false;}
-        }else activateTab('orcamento-panel');
+        }else {activateTab('orcamento-panel');const card=item.row.closest('.card');if(card)card.classList.remove('collapsed');}
         resultsBox.classList.remove('is-open');globalSearch.value='';
         item.row.scrollIntoView({behavior:'smooth',block:'center'});
         item.row.style.outline='3px solid #a9c5df';setTimeout(()=>item.row.style.outline='',1800);
@@ -209,9 +209,9 @@
     history.forEach((entry,index)=>{
       const card=document.createElement('div');card.className='bb-history-entry';
       const info=document.createElement('div');const title=document.createElement('strong');title.textContent=entry.label||'Versão anterior';
-      const date=document.createElement('small');date.textContent=new Date(entry.at||Date.now()).toLocaleString('pt-PT');
+      const date=document.createElement('small');const roomCount=entry.data?.rooms?.length||0;const itemCount=(entry.data?.rooms||[]).reduce((sum,room)=>sum+(room.items||[]).length,0);date.textContent=new Date(entry.at||Date.now()).toLocaleString('pt-PT')+' · '+roomCount+' divisões · '+itemCount+' artigos';
       info.append(title,date);
-      const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Pré-visualizar / recuperar';
+      const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Recuperar esta versão';
       button.addEventListener('click',()=>{
         const ok=confirm('Queres recuperar esta versão? O estado atual será preservado no histórico antes de guardar a recuperação.');
         if(!ok)return;
