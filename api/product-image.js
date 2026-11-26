@@ -67,14 +67,21 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     try {
       const rawImage = typeof req.query?.image === 'string' ? req.query.image : '';
+      const rawReferer = typeof req.query?.referer === 'string' ? req.query.referer : '';
       if (!rawImage || rawImage.length > 4096) return res.status(400).end('URL inválido');
       let imageUrl = new URL(rawImage);
+      let referer = '';
+      if (rawReferer) {
+        const candidate = new URL(rawReferer);
+        await validateHost(candidate);
+        referer = candidate.origin + '/';
+      }
       let imageResponse;
       for (let redirects = 0; redirects <= 3; redirects++) {
         await validateHost(imageUrl);
         imageResponse = await fetch(imageUrl, {
           redirect: 'manual', signal: AbortSignal.timeout(9000),
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36', Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8' }
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36', Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8', ...(referer ? { Referer: referer } : {}) }
         });
         if (![301, 302, 303, 307, 308].includes(imageResponse.status)) break;
         const location = imageResponse.headers.get('location');
@@ -119,7 +126,7 @@ module.exports = async (req, res) => {
       if (!response.ok) break;
       const type = (response.headers.get('content-type') || '').split(';')[0].toLowerCase();
       if (type.startsWith('image/') && type !== 'image/svg+xml') {
-        return res.status(200).json({ image: '/api/product-image?image=' + encodeURIComponent(current.href) });
+        return res.status(200).json({ image: '/api/product-image?image=' + encodeURIComponent(current.href) + '&referer=' + encodeURIComponent(current.origin + '/') });
       }
       if (!type.includes('text/html') && !type.includes('application/xhtml+xml')) break;
       const declaredLength = Number(response.headers.get('content-length') || 0);
@@ -138,7 +145,7 @@ module.exports = async (req, res) => {
     if (!html) return res.status(422).json({ error: 'Não foi possível ler a página desta loja. Pode bloquear consultas automáticas.' });
     const image = findImage(html, current.href);
     if (!image) return res.status(404).json({ error: 'A página não disponibiliza uma imagem de produto reconhecível.' });
-    return res.status(200).json({ image: '/api/product-image?image=' + encodeURIComponent(image), page: current.origin });
+    return res.status(200).json({ image: '/api/product-image?image=' + encodeURIComponent(image) + '&referer=' + encodeURIComponent(current.origin + '/'), page: current.origin });
   } catch (_) {
     return res.status(502).json({ error: 'Não foi possível obter a imagem deste link.' });
   }
