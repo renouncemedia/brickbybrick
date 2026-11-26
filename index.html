@@ -1223,7 +1223,9 @@ function mergeImportedFurniture(existingRooms, incoming) {
     let room=rooms.find(r=>normalizeImportKey(r.title)===normalizeImportKey(entry.room));
     if(!room){room={title:entry.room,items:[]};rooms.push(room);}
     const key=normalizeImportKey(entry.name);
-    const match=room.items.find(item=>normalizeImportKey(item.name)===key && normalizeImportKey(item.category||'Móvel')===normalizeImportKey(entry.category));
+    // Primeiro tenta a mesma categoria; se a categoria tiver mudado, identifica pelo nome dentro da divisão.
+    const match=room.items.find(item=>normalizeImportKey(item.name)===key && normalizeImportKey(item.category||'Móvel')===normalizeImportKey(entry.category))
+      || room.items.find(item=>normalizeImportKey(item.name)===key);
     const replacement={name:entry.name,category:entry.category,mode:entry.mode,qty:String(entry.qty),checked:entry.checked,done:entry.done,links:entry.links.length?entry.links:[{name:'',url:'',qty:1,price:0}]};
     if(match){Object.assign(match,replacement);updated++;}
     else{room.items.push(replacement);added++;}
