@@ -1463,8 +1463,8 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
     if (!state || !Array.isArray(state.rooms) || !state.rooms.length || !state.rooms.every(room => room && Array.isArray(room.items) && room.items.every(item => item && typeof item === 'object' && !Array.isArray(item)))) return false;
     loadingCloudData = true;
     forceHistoryCapture = true;
-    if (Array.isArray(state.checks)) document.querySelectorAll('.item-check').forEach((el,index) => { const saved=state.checks.find(item=>item.index===index); if(saved){el.checked=!!saved.checked;const input=el.closest('tr')?.querySelector('.val-input');if(input&&saved.value!=null)input.value=saved.value;} });
-    if (Array.isArray(state.cards)) state.cards.forEach(item=>{const card=document.getElementById(item.id);if(card)card.classList.toggle('collapsed',!!item.collapsed);});
+    if (Array.isArray(state.checks)) document.querySelectorAll('.item-check').forEach((el,index) => { const saved=state.checks.find(item=>item && item.index===index); if(saved){el.checked=!!saved.checked;const input=el.closest('tr')?.querySelector('.val-input');if(input&&saved.value!=null)input.value=saved.value;} });
+    if (Array.isArray(state.cards)) state.cards.forEach(item=>{if(!item||!item.id)return;const card=document.getElementById(item.id);if(card)card.classList.toggle('collapsed',!!item.collapsed);});
     renderRooms(state.rooms); collapseAllFurnitureGroups();
     if (typeof updateCalculations === 'function') updateCalculations();
     if (typeof updateFurnitureTotals === 'function') updateFurnitureTotals();
