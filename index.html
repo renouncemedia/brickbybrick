@@ -91,6 +91,13 @@ tr.unselected td{background-color:rgba(0,0,0,0.01)}
 .furniture-table td:last-child, .furniture-table th:last-child{text-align:right}
 .furniture-table .remove-furniture{background:#f5e7e7;color:#8b2424;padding:7px 9px;border-radius:7px}
 .furniture-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.import-modal{position:fixed;inset:0;z-index:9999;background:rgba(15,25,38,.58);display:flex;align-items:center;justify-content:center;padding:18px}
+.import-modal[hidden]{display:none}
+.import-modal-card{background:#fff;border-radius:16px;padding:22px;width:min(620px,100%);max-height:85vh;overflow:auto;box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.import-modal-card h3{margin:0 0 10px}
+.import-preview-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.import-preview-row span,.import-warning{font-size:12px;color:var(--muted)}
+.import-warning{margin-top:14px}
 .furniture-totalband{display:flex;justify-content:space-between;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
 .furniture-grand{font-size:clamp(24px,4vw,34px);font-weight:800}
 
@@ -150,7 +157,7 @@ a.view-name:hover{color:#0f2236}
 @media print{.val-input{border:0;padding:0;background:transparent;-moz-appearance:textfield;appearance:textfield;width:80px}.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}}
 
 .furniture-intro{margin-bottom:12px;max-width:720px}
-.furniture-top-actions{justify-content:flex-end;margin:10px 0 18px}
+.furniture-top-actions{justify-content:flex-end;margin:10px 0 18px}.furniture-top-actions button:disabled{opacity:.55;cursor:not-allowed}
 #furniture-rooms{display:flex;flex-direction:column;gap:10px}
 .room-furniture{margin:0;padding:0;border:1px solid #dfe3e8;border-radius:12px;overflow:hidden;box-shadow:none;background:#fff}
 .room-furniture-head{margin:0;padding:16px 18px;min-height:66px;border-radius:0;background:#fff}
@@ -257,6 +264,7 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
 .view-meta{display:flex;align-items:baseline;gap:14px;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
 .view-meta .view-value{color:var(--ink);font-size:15px}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -456,6 +464,21 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
     <h2>Móveis por divisão</h2>
     <p class="furniture-intro">Organize os móveis e equipamentos por divisão. Os artigos ficam agrupados automaticamente pela categoria selecionada.</p>
     <div class="furniture-actions furniture-top-actions">
+      <button type="button" id="export-furniture-excel" disabled>Descarregar Excel</button>
+      <button type="button" id="import-furniture-excel" class="secondary" disabled>Importar Excel</button>
+      <input type="file" id="import-furniture-file" accept=".xlsx,.xls" hidden>
+      <div id="furniture-import-modal" class="import-modal" hidden>
+        <div class="import-modal-card" role="dialog" aria-modal="true" aria-labelledby="furniture-import-title">
+          <h3 id="furniture-import-title">Pré-visualização da importação</h3>
+          <p id="furniture-import-summary"></p>
+          <div id="furniture-import-preview"></div>
+          <p class="import-warning">Os artigos que não constam do Excel serão mantidos. Nada será gravado online sem confirmação.</p>
+          <div class="furniture-actions">
+            <button type="button" id="confirm-furniture-import">Confirmar importação</button>
+            <button type="button" class="secondary" id="cancel-furniture-import">Cancelar</button>
+          </div>
+        </div>
+      </div>
       <button type="button" class="secondary" onclick="window.print()">Imprimir / Guardar em PDF</button>
     </div>
     <section class="general-summary" aria-label="Resumo geral">
@@ -1057,6 +1080,217 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+/* Exportação hierárquica dos móveis por divisão. */
+function exportFurnitureExcel() {
+  if (!window.XLSX) { alert('Não foi possível carregar o módulo de Excel.'); return; }
+  const detailRows = [[
+    'Divisão','Categoria','Tipo de linha','Artigo','Componente','Link do componente',
+    'Tipo de compra','Quantidade do artigo','Estado','Incluído no orçamento',
+    'Quantidade do componente','Preço unitário (€)','Total do componente (€)','Total do artigo (€)'
+  ]];
+  const summary = new Map();
+  let overallAll = 0, overallSelected = 0;
+  const numberValue = (input, fallback = 0) => {
+    const n = Number.parseFloat(input?.value ?? fallback);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  document.querySelectorAll('#furniture-rooms .room-furniture').forEach(room => {
+    const roomName = room.querySelector('.room-title')?.textContent.trim() || room.dataset.room || 'Divisão';
+    room.querySelectorAll('.category-group').forEach(group => {
+      const category = group.dataset.category || 'Outro';
+      group.querySelectorAll('.furniture-table tbody tr').forEach(row => {
+        const name = row.querySelector('.furniture-name')?.value.trim() || '';
+        if (!name) return;
+        const itemQty = numberValue(row.querySelector('.furniture-qty'), 1);
+        const mode = row.querySelector('.purchase-mode')?.value || 'complete';
+        const selected = row.querySelector('.item-check-furn')?.checked !== false;
+        const status = row.classList.contains('is-done') ? 'Comprado' : 'Por comprar';
+        const components = Array.from(row.querySelectorAll('.furniture-link-row')).map(component => ({
+          name: component.querySelector('.component-name')?.value.trim() || '',
+          url: component.querySelector('.furniture-link')?.value.trim() || '',
+          qty: numberValue(component.querySelector('.component-qty'), 1),
+          price: numberValue(component.querySelector('.component-price'), 0)
+        }));
+        const componentTotal = components.reduce((sum,c) => sum + c.qty*c.price, 0);
+        const articleTotal = (mode === 'complete' ? itemQty : 1) * componentTotal;
+        const modeLabel = mode === 'individual' ? 'Componentes individuais' : 'Móvel completo';
+        const key = roomName + '::' + category;
+        if (!summary.has(key)) summary.set(key,{room:roomName,category,count:0,all:0,selected:0});
+        const entry = summary.get(key);
+        entry.count++; entry.all += articleTotal;
+        if (selected) entry.selected += articleTotal;
+        overallAll += articleTotal; if (selected) overallSelected += articleTotal;
+        // Linha principal: identifica o artigo como unidade independente.
+        detailRows.push([roomName,category,'ARTIGO',name,'','',modeLabel,itemQty,status,selected?'Sim':'Não','','','',articleTotal]);
+        // Linhas subordinadas: componentes e respetivos links/preços.
+        components.forEach(component => {
+          detailRows.push([roomName,category,'Componente','',component.name,component.url,modeLabel,itemQty,status,selected?'Sim':'Não',component.qty,component.price,component.qty*component.price,'']);
+        });
+      });
+    });
+  });
+  if (detailRows.length === 1) { alert('Não existem artigos preenchidos para exportar.'); return; }
+  const summaryRows = [['Divisão','Categoria','N.º de artigos','Total de todos os artigos (€)','Total incluído no orçamento (€)']];
+  Array.from(summary.values()).forEach(e => summaryRows.push([e.room,e.category,e.count,e.all,e.selected]));
+  summaryRows.push(['TOTAL GERAL','',Array.from(summary.values()).reduce((n,e)=>n+e.count,0),overallAll,overallSelected]);
+  const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
+  detailSheet['!cols'] = [{wch:19},{wch:24},{wch:15},{wch:30},{wch:28},{wch:48},{wch:24},{wch:17},{wch:16},{wch:23},{wch:19},{wch:18},{wch:22},{wch:20}];
+  detailSheet['!autofilter'] = {ref:'A1:N'+detailRows.length};
+  for(let r=1;r<detailRows.length;r++){
+    const link=detailRows[r][5];
+    if(link && /^https?:\/\//i.test(link)){
+      const cell=detailSheet[XLSX.utils.encode_cell({r,c:5})];
+      if(cell) cell.l={Target:link,Tooltip:'Abrir link do componente'};
+    }
+    [11,12,13].forEach(c=>{
+      const cell=detailSheet[XLSX.utils.encode_cell({r,c})];
+      if(cell && typeof cell.v==='number') cell.z='#,##0.00 [$€-pt-PT]';
+    });
+  }
+  const summarySheet=XLSX.utils.aoa_to_sheet(summaryRows);
+  summarySheet['!cols']=[{wch:20},{wch:28},{wch:16},{wch:30},{wch:34}];
+  for(let r=1;r<summaryRows.length;r++) [3,4].forEach(c=>{
+    const cell=summarySheet[XLSX.utils.encode_cell({r,c})];
+    if(cell && typeof cell.v==='number') cell.z='#,##0.00 [$€-pt-PT]';
+  });
+  const workbook=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook,summarySheet,'Resumo');
+  XLSX.utils.book_append_sheet(workbook,detailSheet,'Móveis por divisão');
+  workbook.Props={Title:'Móveis por divisão',Subject:'Exportação hierárquica dos móveis por divisão',Author:'Brick by Brick'};
+  XLSX.writeFile(workbook,'moveis-por-divisao-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+/* Importação com pré-visualização e merge não destrutivo. */
+let pendingFurnitureImport = null;
+const normalizeImportKey = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
+function parseFurnitureWorkbook(file) {
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onerror=()=>reject(new Error('Não foi possível ler o ficheiro.'));
+    reader.onload=()=>{
+      try{
+        const wb=XLSX.read(reader.result,{type:'array'});
+        const sheet=wb.Sheets['Móveis por divisão'] || wb.Sheets[wb.SheetNames[0]];
+        if(!sheet) throw new Error('O ficheiro não contém uma folha de móveis.');
+        const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+        if(rows.length<2) throw new Error('A folha não contém artigos para importar.');
+        const headers=rows[0].map(v=>String(v).trim());
+        const col=name=>headers.findIndex(h=>normalizeImportKey(h)===normalizeImportKey(name));
+        const get=(r,name)=>{const i=col(name);return i<0?'':r[i];};
+        const imported=[];
+        let current=null;
+        const num=v=>{if(typeof v==='number') return Math.max(0,v); const n=Number.parseFloat(String(v??'').replace(',','.'));return Number.isFinite(n)&&n>=0?n:0;};
+        if(col('Tipo de linha')<0){
+          // Compatibilidade com a primeira versão do exportador: uma linha por componente.
+          const grouped=new Map();
+          rows.slice(1).forEach(r=>{
+            const room=String(get(r,'Divisão')).trim(), category=String(get(r,'Categoria')).trim()||'Móvel', name=String(get(r,'Artigo')).trim();
+            if(!room||!name)return;
+            const key=[room,category,name].map(normalizeImportKey).join('|');
+            if(!grouped.has(key)) grouped.set(key,{room,category,name,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',links:[]});
+            const item=grouped.get(key), component=String(get(r,'Componente')).trim(), url=String(get(r,'Link do produto')).trim();
+            if(component||url||num(get(r,'Preço unitário (€)'))>0)item.links.push({name:component,url,qty:num(get(r,'Quantidade do componente'))||1,price:num(get(r,'Preço unitário (€)'))});
+          });
+          imported.push(...grouped.values());
+        } else {
+          rows.slice(1).forEach(r=>{
+            const type=String(get(r,'Tipo de linha')).trim().toUpperCase();
+            const room=String(get(r,'Divisão')).trim();
+            const category=String(get(r,'Categoria')).trim() || 'Móvel';
+            const article=String(get(r,'Artigo')).trim();
+            if(type==='ARTIGO'){
+              current={room,category,name:article,mode:String(get(r,'Tipo de compra')).toLowerCase().includes('individual')?'individual':'complete',qty:num(get(r,'Quantidade do artigo'))||1,done:normalizeImportKey(get(r,'Estado'))==='comprado',checked:normalizeImportKey(get(r,'Incluído no orçamento'))!=='nao',links:[]};
+              if(!room||!article) current=null; else imported.push(current);
+            } else if(type==='COMPONENTE' && current){
+              const name=String(get(r,'Componente')).trim(),url=String(get(r,'Link do componente')).trim();
+              const qty=num(get(r,'Quantidade do componente'))||1,price=num(get(r,'Preço unitário (€)'));
+              if(name||url||price>0) current.links.push({name,url,qty,price});
+            }
+          });
+        }
+        if(!imported.length) throw new Error('Não encontrei artigos válidos. Usa um Excel exportado pelo Brick by Brick.');
+        resolve(imported);
+      }catch(e){reject(e);}
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+function mergeImportedFurniture(existingRooms, incoming) {
+  const rooms=existingRooms.map(room=>({...room,items:(room.items||[]).map(item=>({...item,links:Array.isArray(item.links)?item.links.map(x=>({...x})):item.links}))}));
+  let updated=0,added=0;
+  incoming.forEach(entry=>{
+    let room=rooms.find(r=>normalizeImportKey(r.title)===normalizeImportKey(entry.room));
+    if(!room){room={title:entry.room,items:[]};rooms.push(room);}
+    const key=normalizeImportKey(entry.name);
+    // Primeiro tenta a mesma categoria; se a categoria tiver mudado, identifica pelo nome dentro da divisão.
+    const match=room.items.find(item=>normalizeImportKey(item.name)===key && normalizeImportKey(item.category||'Móvel')===normalizeImportKey(entry.category))
+      || room.items.find(item=>normalizeImportKey(item.name)===key);
+    const replacement={name:entry.name,category:entry.category,mode:entry.mode,qty:String(entry.qty),checked:entry.checked,done:entry.done,links:entry.links.length?entry.links:[{name:'',url:'',qty:1,price:0}]};
+    if(match){Object.assign(match,replacement);updated++;}
+    else{room.items.push(replacement);added++;}
+  });
+  return {rooms,updated,added};
+}
+function showFurnitureImportPreview(incoming) {
+  const current=getCurrentFurnitureRooms();
+  const merged=mergeImportedFurniture(current,incoming);
+  pendingFurnitureImport={incoming,merged};
+  const modal=document.getElementById('furniture-import-modal');
+  const summary=document.getElementById('furniture-import-summary');
+  const preview=document.getElementById('furniture-import-preview');
+  summary.textContent=incoming.length+' artigos no ficheiro · '+merged.updated+' serão atualizados · '+merged.added+' serão acrescentados · os restantes serão mantidos.';
+  preview.innerHTML='';
+  incoming.slice(0,12).forEach(item=>{
+    const line=document.createElement('div');
+    line.className='import-preview-row';
+    const name=document.createElement('strong');name.textContent=item.name;
+    const meta=document.createElement('span');meta.textContent=item.room+' · '+item.category+' · '+item.links.length+' componente(s)';
+    line.append(name,meta);preview.appendChild(line);
+  });
+  if(incoming.length>12){const more=document.createElement('p');more.textContent='… e mais '+(incoming.length-12)+' artigos.';preview.appendChild(more);}
+  modal.hidden=false;
+}
+function getCurrentFurnitureRooms(){
+  return Array.from(document.querySelectorAll('#furniture-rooms .room-furniture')).map(room=>({
+    title:room.querySelector('.room-title')?.textContent.trim()||room.dataset.room||'Divisão',
+    items:Array.from(room.querySelectorAll('.furniture-table tbody tr')).map(row=>({
+      name:row.querySelector('.furniture-name')?.value||'',
+      checked:row.querySelector('.item-check-furn')?.checked!==false,
+      image:row.dataset.image||'',
+      category:row.querySelector('.furniture-category')?.value||'Móvel',
+      mode:row.querySelector('.purchase-mode')?.value||'complete',
+      links:Array.from(row.querySelectorAll('.furniture-link-row')).map(c=>({name:c.querySelector('.component-name')?.value||'',url:c.querySelector('.furniture-link')?.value||'',qty:c.querySelector('.component-qty')?.value||'1',price:c.querySelector('.component-price')?.value||'0'})),
+      done:row.classList.contains('is-done'),qty:row.querySelector('.furniture-qty')?.value||'1'
+    }))
+  }));
+}
+function confirmFurnitureImport(){
+  if(!pendingFurnitureImport)return;
+  if(!confirm('Confirmas a importação? Os artigos correspondentes serão atualizados e os novos acrescentados. Os artigos que não constam do Excel serão mantidos.'))return;
+  renderRooms(pendingFurnitureImport.merged.rooms);
+  collapseAllFurnitureGroups();
+  updateFurnitureTotals();
+  const modal=document.getElementById('furniture-import-modal');modal.hidden=true;
+  pendingFurnitureImport=null;
+  document.querySelector('#furniture-rooms .room-title')?.dispatchEvent(new Event('input',{bubbles:true}));
+  document.getElementById('cloud-save-status').textContent='Importação aplicada localmente; a sincronizar…';
+}
+function cancelFurnitureImport(){pendingFurnitureImport=null;document.getElementById('furniture-import-modal').hidden=true;}
+document.getElementById('export-furniture-excel')?.addEventListener('click', exportFurnitureExcel);
+document.getElementById('import-furniture-excel')?.addEventListener('click',()=>document.getElementById('import-furniture-file')?.click());
+document.getElementById('import-furniture-file')?.addEventListener('change',async event=>{
+  const file=event.target.files?.[0];event.target.value='';
+  if(!file)return;
+  try{
+    if(!window.XLSX)throw new Error('O módulo Excel não está disponível.');
+    const incoming=await parseFurnitureWorkbook(file);
+    showFurnitureImportPreview(incoming);
+  }catch(error){alert('Não foi possível preparar a importação: '+error.message);}
+});
+document.getElementById('confirm-furniture-import')?.addEventListener('click',confirmFurnitureImport);
+document.getElementById('cancel-furniture-import')?.addEventListener('click',cancelFurnitureImport);
+
 /* Sincronização online via API do Vercel */
 (() => {
   const API_URL = '/api/data';
@@ -1176,9 +1410,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(API_URL, { method: 'GET', cache: 'no-store' });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const result = await response.json();
-      if (result && result.data) {
-        loadingCloudData = true;
-        const data = result.data;
+      // Nunca considerar uma resposta vazia/incompleta como sincronização válida.
+      // Sem estes dados, a página não pode ativar gravações nem exportação.
+      const data = result && result.data;
+      if (!data || typeof data !== 'object' || Array.isArray(data) ||
+          !Array.isArray(data.rooms) || data.rooms.length === 0 ||
+          !data.rooms.every(room => room && typeof room === 'object' && Array.isArray(room.items)) ||
+          !result.version) {
+        throw new Error('A API não devolveu um estado válido do orçamento (divisões ou versão em falta).');
+      }
+      loadingCloudData = true;
         if (Array.isArray(data.checks)) {
           document.querySelectorAll('.item-check').forEach((el, index) => {
             const saved = data.checks.find(item => item.index === index);
@@ -1206,14 +1447,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof updateCalculations === 'function') updateCalculations();
         if (typeof updateFurnitureTotals === 'function') updateFurnitureTotals();
         loadingCloudData = false;
-      }
-      baseVersion = (result && result.version) || null;
+      baseVersion = result.version;
       lastSavedSnapshot = JSON.stringify(getSnapshot());
       cloudReady = true;
+      const exportButton = document.getElementById('export-furniture-excel');
+      if (exportButton) exportButton.disabled = false;
+      const importButton=document.getElementById('import-furniture-excel');
+      if(importButton) importButton.disabled=false;
       setCloudStatus('✓ Dados sincronizados online');
     } catch (error) {
       loadingCloudData = false;
       cloudReady = false;
+      const exportButton = document.getElementById('export-furniture-excel');
+      if (exportButton) exportButton.disabled = true;
+      const importButton=document.getElementById('import-furniture-excel');
+      if(importButton) importButton.disabled=true;
       clearTimeout(saveTimer);
       setCloudStatus('Não foi possível ler os dados online — nada será guardado até a ligação voltar. A tentar de novo…', true);
       clearTimeout(retryTimer);
@@ -1236,6 +1484,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   async function doSaveCloudData() {
     const snapshot = getSnapshot();
+    // Proteção adicional: nunca enviar para o Supabase um estado sem divisões.
+    if (!Array.isArray(snapshot.rooms) || snapshot.rooms.length === 0 ||
+        !snapshot.rooms.every(room => room && Array.isArray(room.items))) {
+      cloudReady = false;
+      setCloudStatus('Gravação bloqueada: os dados das divisões não estão carregados. Nada foi alterado online.', true);
+      return;
+    }
     const serialized = JSON.stringify(snapshot);
     if (serialized === lastSavedSnapshot) return;
     setCloudStatus('A guardar online…');
@@ -1259,7 +1514,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (_) {}
         throw new Error('HTTP ' + response.status + (detail ? ': ' + detail : ''));
       }
-      try { const okBody = await response.json(); if (okBody && okBody.version) baseVersion = okBody.version; } catch (_) {}
+      const okBody = await response.json();
+      if (!okBody || okBody.ok !== true || !okBody.version) {
+        throw new Error('A API não confirmou a gravação nem devolveu uma versão válida.');
+      }
+      baseVersion = okBody.version;
       lastSavedSnapshot = serialized;
       setCloudStatus('✓ Guardado online');
     } catch (error) {
