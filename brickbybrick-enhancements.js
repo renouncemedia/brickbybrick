@@ -258,7 +258,7 @@
   function refreshAllWhenReady(){
     enhanceAllRows();refreshAll();
     const target=$('#furniture-rooms');
-    if(target){const observer=new MutationObserver(()=>{enhanceAllRows();renderDashboard();renderAnalysis();});observer.observe(target,{childList:true,subtree:true});}
+    if(target){const observer=new MutationObserver(()=>{enhanceAllRows();renderDashboard();renderAnalysis();});observer.observe(target,{childList:true,subtree:true});const photoObserver=new MutationObserver(records=>records.forEach(record=>{const row=record.target;if(!row.matches('tr'))return;const url=safeUrl(row.dataset.image||'');const image=$('.bb-photo-editor img',row);const input=$('.bb-image-url',row);if(input)input.value=url;if(image){if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}}if(row.classList.contains('is-done')){let preview=$('.bb-view-image',row);const line=$('.view-line',row);if(url&&line&&!preview){preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';line.prepend(preview);}if(preview){preview.src=url;preview.hidden=!url;}}}));photoObserver.observe(target,{attributes:true,attributeFilter:['data-image'],subtree:true});}
     const status=$('#cloud-save-status');
     if(status){const syncButtons=()=>{const ready=status.textContent.includes('sincronizados')||status.textContent.includes('Guardado online');$$('#bb-export-backup,#bb-import-backup').forEach(b=>b.disabled=!ready);};new MutationObserver(syncButtons).observe(status,{childList:true,characterData:true,subtree:true});syncButtons();}
   }
