@@ -1,0 +1,247 @@
+
+(() => {
+  'use strict';
+  const $ = (selector, root=document) => root.querySelector(selector);
+  const $$ = (selector, root=document) => Array.from(root.querySelectorAll(selector));
+  const euro = value => (Number(value)||0).toLocaleString('pt-PT',{style:'currency',currency:'EUR'});
+  const parseEuro = text => Number(String(text||'').replace(/[^0-9,.-]/g,'').replace(/\.(?=.*[,])/g,'').replace(',','.'))||0;
+  const safeUrl = value => { try { const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
+  const emitSave = element => { const target=element||$('.furniture-name'); if(target) target.dispatchEvent(new Event('input',{bubbles:true})); };
+  const activateTab = id => {
+    $$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
+    $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
+    const panel=$('#'+id); if(panel) panel.scrollIntoView({block:'start',behavior:'smooth'});
+    refreshAll();
+  };
+  const nav = $('.tabs');
+  if(nav){
+    const searchMarkup='<div class="bb-global-tools"><div class="bb-search-wrap"><span class="bb-search-icon" aria-hidden="true">⌕</span><input id="bb-global-search" type="search" placeholder="Pesquisar qualquer móvel, artigo ou trabalho…" autocomplete="off" aria-label="Pesquisa global"><div id="bb-search-results" class="bb-search-results" role="listbox"></div></div><div class="bb-global-hint">Pesquisa em todo o orçamento e em todas as divisões</div></div>';
+    nav.insertAdjacentHTML('afterend',searchMarkup);
+  }
+  $$('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+  document.addEventListener('click',event=>{ if(!event.target.closest('.bb-search-wrap')) $('#bb-search-results')?.classList.remove('is-open'); });
+  const globalSearch = $('#bb-global-search');
+  const resultsBox = $('#bb-search-results');
+  function searchIndex(query){
+    const q=query.trim().toLocaleLowerCase('pt-PT'); if(!q)return [];
+    const results=[];
+    $$('#furniture-rooms .room-furniture').forEach(room=>{
+      const roomName=$('.room-title',room)?.textContent.trim()||'Divisão';
+      $$('tbody tr',room).forEach(row=>{
+        const name=$('.furniture-name',row)?.value||'';
+        const category=$('.furniture-category',row)?.value||'';
+        const components=$$('.component-name',row).map(x=>x.value).join(' ');
+        const links=$$('.furniture-link',row).map(x=>x.value).join(' ');
+        const text=[name,category,roomName,components,links].join(' ').toLocaleLowerCase('pt-PT');
+        if(text.includes(q))results.push({kind:'furniture',name:name||'Artigo sem nome',meta:roomName+' · '+category,row,room});
+      });
+    });
+    $$('.calc-table tbody tr').forEach(row=>{
+      const text=row.textContent.toLocaleLowerCase('pt-PT');
+      if(text.includes(q))results.push({kind:'budget',name:row.textContent.trim().replace(/\s+/g,' ').slice(0,130),meta:'Orçamento da obra',row});
+    });
+    return results.slice(0,30);
+  }
+  function showSearchResults(query){
+    if(!resultsBox)return;
+    const matches=searchIndex(query); resultsBox.innerHTML='';
+    if(!query.trim()){resultsBox.classList.remove('is-open');return;}
+    if(!matches.length){resultsBox.innerHTML='<div class="bb-search-empty">Não foram encontrados resultados.</div>';resultsBox.classList.add('is-open');return;}
+    matches.forEach((item,index)=>{
+      const button=document.createElement('button');button.type='button';button.className='bb-search-result';
+      const icon=item.kind==='furniture'?'▦':'€';
+      button.innerHTML='<span aria-hidden="true">'+icon+'</span><span><strong></strong><small></small></span>';
+      $('strong',button).textContent=item.name;$('small',button).textContent=item.meta;
+      button.addEventListener('click',()=>{
+        if(item.kind==='furniture'){
+          activateTab('moveis-panel');item.room.hidden=false;item.room.classList.remove('collapsed');
+          const group=item.row.closest('.category-group');if(group){group.hidden=false;group.classList.remove('is-collapsed');const table=$('.furniture-table',group);if(table)table.hidden=false;}
+        }else activateTab('orcamento-panel');
+        resultsBox.classList.remove('is-open');globalSearch.value='';
+        item.row.scrollIntoView({behavior:'smooth',block:'center'});
+        item.row.style.outline='3px solid #a9c5df';setTimeout(()=>item.row.style.outline='',1800);
+      });
+      resultsBox.appendChild(button);
+    });
+    resultsBox.classList.add('is-open');
+  }
+  globalSearch?.addEventListener('input',()=>showSearchResults(globalSearch.value));
+  globalSearch?.addEventListener('keydown',event=>{if(event.key==='Escape'){globalSearch.value='';resultsBox.classList.remove('is-open');}if(event.key==='Enter'){const first=$('.bb-search-result',resultsBox);first?.click();}});
+  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();globalSearch?.focus();}});
+  const furniturePanel=$('#moveis-panel');
+  if(furniturePanel){
+    const intro=$('.furniture-intro',furniturePanel);
+    const filter=document.createElement('div');filter.className='bb-filterbar';filter.id='bb-furniture-filters';
+    filter.innerHTML='<div><label for="bb-filter-search">Pesquisa nesta área</label><input id="bb-filter-search" type="search" placeholder="Nome ou componente"></div><div><label for="bb-filter-room">Divisão</label><select id="bb-filter-room"><option value="">Todas as divisões</option></select></div><div><label for="bb-filter-category">Categoria</label><select id="bb-filter-category"><option value="">Todas as categorias</option></select></div><div><label for="bb-filter-min">Preço mínimo (€)</label><input id="bb-filter-min" type="number" min="0" step="0.01" placeholder="0"></div><div><label for="bb-filter-max">Preço máximo (€)</label><input id="bb-filter-max" type="number" min="0" step="0.01" placeholder="Sem limite"></div><div class="bb-filter-count" id="bb-filter-count">A mostrar todos os artigos</div>';
+    if(intro)intro.insertAdjacentElement('afterend',filter);else furniturePanel.prepend(filter);
+  }
+  function refreshFilterOptions(){
+    const roomSelect=$('#bb-filter-room'),catSelect=$('#bb-filter-category');if(!roomSelect||!catSelect)return;
+    const roomValue=roomSelect.value,catValue=catSelect.value;
+    const rooms=$$('#furniture-rooms .room-furniture').map(r=>$('.room-title',r)?.textContent.trim()).filter(Boolean);
+    const cats=Array.from(new Set($$('#furniture-rooms .furniture-category').map(s=>s.value).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'pt'));
+    roomSelect.innerHTML='<option value="">Todas as divisões</option>'+rooms.map(x=>'<option></option>').join('');
+    Array.from(roomSelect.options).slice(1).forEach((o,i)=>{o.value=rooms[i];o.textContent=rooms[i];});
+    catSelect.innerHTML='<option value="">Todas as categorias</option>'+cats.map(x=>'<option></option>').join('');
+    Array.from(catSelect.options).slice(1).forEach((o,i)=>{o.value=cats[i];o.textContent=cats[i];});
+    roomSelect.value=rooms.includes(roomValue)?roomValue:'';catSelect.value=cats.includes(catValue)?catValue:'';
+  }
+  function applyFilters(){
+    const query=($('#bb-filter-search')?.value||'').trim().toLocaleLowerCase('pt-PT');
+    const roomFilter=$('#bb-filter-room')?.value||'',catFilter=$('#bb-filter-category')?.value||'';
+    const minRaw=$('#bb-filter-min')?.value,maxRaw=$('#bb-filter-max')?.value;
+    const min=minRaw===''?-Infinity:Number(minRaw),max=maxRaw===''?Infinity:Number(maxRaw);
+    let shown=0,total=0;
+    $$('#furniture-rooms .room-furniture').forEach(room=>{
+      const roomName=$('.room-title',room)?.textContent.trim()||'';
+      let roomHas=false;
+      $$('.category-group',room).forEach(group=>{
+        let groupHas=false;
+        $$('tbody tr',group).forEach(row=>{
+          total++;
+          const name=$('.furniture-name',row)?.value||'';
+          const category=$('.furniture-category',row)?.value||'';
+          const comp=$$('.component-name',row).map(x=>x.value).join(' ');
+          const text=(name+' '+category+' '+comp+' '+roomName).toLocaleLowerCase('pt-PT');
+          const line=parseEuro(row.dataset.line||$('.line-total',row)?.textContent);
+          const ok=(!query||text.includes(query))&&(!roomFilter||roomFilter===roomName)&&(!catFilter||catFilter===category)&&line>=min&&line<=max;
+          row.classList.toggle('bb-hidden-by-filter',!ok);if(ok){shown++;groupHas=true;roomHas=true;}
+        });
+        group.classList.toggle('bb-hidden-by-filter',!groupHas);
+      });
+      room.classList.toggle('bb-hidden-by-filter',!roomHas);
+    });
+    const count=$('#bb-filter-count');if(count)count.textContent='A mostrar '+shown+' de '+total+' artigos';
+  }
+  ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max'].forEach(id=>{
+    $('#'+id)?.addEventListener('input',applyFilters);$('#'+id)?.addEventListener('change',applyFilters);
+  });
+  function enhanceRow(row){
+    if(!row||row.dataset.bbEnhanced==='1')return;
+    row.dataset.bbEnhanced='1';
+    const firstCell=row.children[0],nameWrap=$('.furniture-name-wrap',row);
+    if(firstCell&&nameWrap){
+      const editor=document.createElement('div');editor.className='bb-photo-editor';
+      const image=document.createElement('img');image.alt='Fotografia do artigo';image.hidden=true;
+      const imageInput=document.createElement('input');imageInput.type='url';imageInput.className='bb-image-url';imageInput.placeholder='URL da fotografia';imageInput.setAttribute('aria-label','URL da fotografia do artigo');
+      const current=safeUrl(row.dataset.image||'');if(current){image.src=current;image.hidden=false;imageInput.value=current;}
+      editor.append(image,imageInput);firstCell.appendChild(editor);
+      imageInput.addEventListener('input',()=>{
+        const url=safeUrl(imageInput.value);row.dataset.image=url;
+        if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}
+        emitSave($('.furniture-name',row));
+      });
+      image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';});
+    }
+    const lastCell=row.lastElementChild;
+    if(lastCell&&!$('.bb-duplicate',lastCell)){
+      const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='bb-duplicate';duplicate.textContent='⧉';duplicate.title='Duplicar artigo';duplicate.setAttribute('aria-label','Duplicar artigo');
+      const remove=$('.remove-furniture',lastCell);if(remove)lastCell.insertBefore(duplicate,remove);else lastCell.appendChild(duplicate);
+    }
+  }
+  function enhanceAllRows(){ $$('#furniture-rooms tbody tr').forEach(enhanceRow);refreshFilterOptions();applyFilters(); }
+  $('#furniture-rooms')?.addEventListener('click',event=>{
+    const duplicate=event.target.closest('.bb-duplicate');if(!duplicate)return;
+    const row=duplicate.closest('tr');if(!row)return;
+    const copy=row.cloneNode(true);copy.dataset.bbEnhanced='1';copy.classList.remove('is-done','unselected');
+    $$('.view-val',copy).forEach(el=>el.remove());
+    const nameCell=copy.children[0];if(nameCell)nameCell.colSpan=1;
+    const toggle=$('.toggle-furniture',copy);if(toggle){toggle.textContent='✓';toggle.title='Guardar móvel';}
+    const group=row.closest('.category-group');const body=group?.querySelector('tbody');
+    if(body)body.insertBefore(copy,row.nextSibling);
+    enhanceRow(copy);emitSave($('.furniture-name',copy));refreshAll();
+  });
+  $('#furniture-rooms')?.addEventListener('input',event=>{
+    if(event.target.matches('.furniture-name,.furniture-category,.component-name,.component-price,.component-qty,.furniture-qty,.bb-image-url')){refreshAll();}
+  });
+  $('#furniture-rooms')?.addEventListener('change',refreshAll);
+  function moneyFromId(id){return parseEuro($('#'+id)?.textContent||'0');}
+  function renderDashboard(){
+    const work=moneyFromId('grand-total'),furn=moneyFromId('furniture-grand-total'),combined=moneyFromId('combined-grand-total');
+    const rooms=$$('#furniture-rooms .room-furniture');
+    const rows=$$('#furniture-rooms tbody tr');
+    const done=rows.filter(r=>r.classList.contains('is-done')).length;
+    const set=(id,value)=>{const el=$('#'+id);if(el)el.textContent=value;};
+    set('bb-kpi-work',euro(work));set('bb-kpi-furniture',euro(furn));set('bb-kpi-combined',euro(combined));
+    set('bb-kpi-items',String(rows.length));set('bb-kpi-items-sub',done+' artigos marcados como concluídos');
+    const overview=$('#bb-room-overview');if(!overview)return;overview.innerHTML='';
+    rooms.forEach(room=>{
+      const card=document.createElement('div');card.className='bb-room-card';
+      const title=$('.room-title',room)?.textContent.trim()||'Divisão';
+      const count=$$('tbody tr',room).length;
+      card.innerHTML='<strong></strong><small></small>';
+      $('strong',card).textContent=title;$('small',card).textContent=count+' artigo(s) · '+($('.room-total',room)?.textContent||euro(0));
+      overview.appendChild(card);
+    });
+  }
+  function chartRows(targetId,items){
+    const target=$('#'+targetId);if(!target)return;target.innerHTML='';
+    const max=Math.max(1,...items.map(x=>x.value));
+    if(!items.length){target.innerHTML='<div class="bb-empty">Ainda não existem dados para apresentar.</div>';return;}
+    items.forEach(item=>{
+      const row=document.createElement('div');row.className='bb-chart-row';
+      const label=document.createElement('div');label.className='bb-chart-label';label.textContent=item.label;
+      const track=document.createElement('div');track.className='bb-chart-track';const fill=document.createElement('div');fill.className='bb-chart-fill';fill.style.width=Math.max(item.value>0?1:0,item.value/max*100)+'%';track.appendChild(fill);
+      const value=document.createElement('div');value.className='bb-chart-value';value.textContent=euro(item.value);
+      row.append(label,track,value);target.appendChild(row);
+    });
+  }
+  function renderAnalysis(){
+    const rooms=$$('#furniture-rooms .room-furniture').map(room=>({label:$('.room-title',room)?.textContent.trim()||'Divisão',value:parseEuro($('.room-total',room)?.textContent)})).sort((a,b)=>b.value-a.value);
+    const ids=[['Cozinha','summary-cozinha'],['Casa de banho','summary-wc'],['Sala, quartos e hall','summary-pavi'],['Marquise','summary-marquise'],['Varandas','summary-varandas'],['Portas e roupeiro','summary-portas'],['Trabalhos gerais','summary-gerais']];
+    const work=ids.map(([label,id])=>({label,value:moneyFromId(id)})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);
+    chartRows('bb-analysis-rooms',rooms);chartRows('bb-analysis-work',work);
+    const total=moneyFromId('combined-grand-total'),workTotal=moneyFromId('grand-total'),furnTotal=moneyFromId('furniture-grand-total');
+    const ratio=total?Math.round(furnTotal/total*100):0;
+    const el=$('#bb-analysis-note');if(el)el.textContent='Os móveis representam '+ratio+'% do total combinado. Valores calculados a partir dos artigos atualmente incluídos no orçamento.';
+    const a=$('#bb-analysis-work-total'),b=$('#bb-analysis-furniture-total'),c=$('#bb-analysis-combined-total');
+    if(a)a.textContent=euro(workTotal);if(b)b.textContent=euro(furnTotal);if(c)c.textContent=euro(total);
+  }
+  function renderHistory(){
+    const list=$('#bb-history-list');if(!list)return;list.innerHTML='';
+    const history=window.__bbGetHistory?.()||[];
+    if(!history.length){list.innerHTML='<div class="bb-empty">Ainda não existem versões anteriores guardadas. O histórico começa a ser criado quando fizeres alterações e estas forem sincronizadas.</div>';return;}
+    history.forEach((entry,index)=>{
+      const card=document.createElement('div');card.className='bb-history-entry';
+      const info=document.createElement('div');const title=document.createElement('strong');title.textContent=entry.label||'Versão anterior';
+      const date=document.createElement('small');date.textContent=new Date(entry.at||Date.now()).toLocaleString('pt-PT');
+      info.append(title,date);
+      const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Pré-visualizar / recuperar';
+      button.addEventListener('click',()=>{
+        const ok=confirm('Queres recuperar esta versão? O estado atual será preservado no histórico antes de guardar a recuperação.');
+        if(!ok)return;
+        if(window.__bbApplySnapshot?.(entry.data)){activateTab('moveis-panel');setTimeout(()=>activateTab('history-panel'),100);renderHistory();}
+        else alert('Não foi possível recuperar esta versão. O registo pode estar incompleto.');
+      });
+      card.append(info,button);list.appendChild(card);
+    });
+  }
+  function refreshAll(){renderDashboard();renderAnalysis();renderHistory();enhanceAllRows();}
+  const download=(filename,content,type)=>{
+    const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+  $('#bb-export-backup')?.addEventListener('click',()=>{
+    const snapshot=window.__bbGetSnapshot?.();if(!snapshot?.rooms?.length){alert('Os dados online ainda não estão carregados.');return;}
+    download('brick-by-brick-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({format:'brickbybrick-backup-v1',createdAt:new Date().toISOString(),data:snapshot},null,2),'application/json');
+  });
+  $('#bb-import-backup-file')?.addEventListener('change',async event=>{
+    const file=event.target.files?.[0];event.target.value='';if(!file)return;
+    try{
+      const parsed=JSON.parse(await file.text());const data=parsed?.data||parsed;
+      if(!data||!Array.isArray(data.rooms)||!data.rooms.length||!data.rooms.every(r=>r&&Array.isArray(r.items)))throw new Error('O ficheiro não contém divisões e artigos válidos.');
+      if(!confirm('O backup contém '+data.rooms.length+' divisões. Queres substituir o estado atual? A versão atual será preservada no histórico.'))return;
+      if(!window.__bbApplySnapshot?.(data))throw new Error('Não foi possível aplicar o backup.');
+      alert('Backup aplicado. A sincronização online será iniciada automaticamente.');
+    }catch(error){alert('Não foi possível importar o backup: '+error.message);}
+  });
+  $('#bb-import-backup')?.addEventListener('click',()=>$('#bb-import-backup-file')?.click());
+  function refreshAllWhenReady(){
+    enhanceAllRows();refreshAll();
+    const target=$('#furniture-rooms');
+    if(target){const observer=new MutationObserver(()=>{enhanceAllRows();renderDashboard();renderAnalysis();});observer.observe(target,{childList:true,subtree:true});}
+    const status=$('#cloud-save-status');
+    if(status)new MutationObserver(()=>{const ready=status.textContent.includes('sincronizados')||status.textContent.includes('Guardado online');$$('#bb-export-backup,#bb-import-backup').forEach(b=>b.disabled=!ready);}).observe(status,{childList:true,characterData:true,subtree:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refreshAllWhenReady,{once:true});else refreshAllWhenReady();
+  window.addEventListener('resize',()=>renderAnalysis());
+})();
