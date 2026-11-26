@@ -1299,9 +1299,16 @@ document.getElementById('export-furniture-excel')?.addEventListener('click', exp
       const response = await fetch(API_URL, { method: 'GET', cache: 'no-store' });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const result = await response.json();
-      if (result && result.data) {
-        loadingCloudData = true;
-        const data = result.data;
+      // Nunca considerar uma resposta vazia/incompleta como sincronização válida.
+      // Sem estes dados, a página não pode ativar gravações nem exportação.
+      const data = result && result.data;
+      if (!data || typeof data !== 'object' || Array.isArray(data) ||
+          !Array.isArray(data.rooms) || data.rooms.length === 0 ||
+          !data.rooms.every(room => room && typeof room === 'object' && Array.isArray(room.items)) ||
+          !result.version) {
+        throw new Error('A API não devolveu um estado válido do orçamento (divisões ou versão em falta).');
+      }
+      loadingCloudData = true;
         if (Array.isArray(data.checks)) {
           document.querySelectorAll('.item-check').forEach((el, index) => {
             const saved = data.checks.find(item => item.index === index);
@@ -1330,7 +1337,7 @@ document.getElementById('export-furniture-excel')?.addEventListener('click', exp
         if (typeof updateFurnitureTotals === 'function') updateFurnitureTotals();
         loadingCloudData = false;
       }
-      baseVersion = (result && result.version) || null;
+      baseVersion = result.version;
       lastSavedSnapshot = JSON.stringify(getSnapshot());
       cloudReady = true;
       const exportButton = document.getElementById('export-furniture-excel');
@@ -1363,6 +1370,13 @@ document.getElementById('export-furniture-excel')?.addEventListener('click', exp
   }
   async function doSaveCloudData() {
     const snapshot = getSnapshot();
+    // Proteção adicional: nunca enviar para o Supabase um estado sem divisões.
+    if (!Array.isArray(snapshot.rooms) || snapshot.rooms.length === 0 ||
+        !snapshot.rooms.every(room => room && Array.isArray(room.items))) {
+      cloudReady = false;
+      setCloudStatus('Gravação bloqueada: os dados das divisões não estão carregados. Nada foi alterado online.', true);
+      return;
+    }
     const serialized = JSON.stringify(snapshot);
     if (serialized === lastSavedSnapshot) return;
     setCloudStatus('A guardar online…');
@@ -1386,7 +1400,11 @@ document.getElementById('export-furniture-excel')?.addEventListener('click', exp
         } catch (_) {}
         throw new Error('HTTP ' + response.status + (detail ? ': ' + detail : ''));
       }
-      try { const okBody = await response.json(); if (okBody && okBody.version) baseVersion = okBody.version; } catch (_) {}
+      const okBody = await response.json();
+      if (!okBody || okBody.ok !== true || !okBody.version) {
+        throw new Error('A API não confirmou a gravação nem devolveu uma versão válida.');
+      }
+      baseVersion = okBody.version;
       lastSavedSnapshot = serialized;
       setCloudStatus('✓ Guardado online');
     } catch (error) {
