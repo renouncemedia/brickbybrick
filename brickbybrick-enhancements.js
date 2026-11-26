@@ -248,7 +248,7 @@
     const file=event.target.files?.[0];event.target.value='';if(!file)return;
     try{
       const parsed=JSON.parse(await file.text());const data=parsed?.data||parsed;
-      if(!data||!Array.isArray(data.rooms)||!data.rooms.length||!data.rooms.every(r=>r&&Array.isArray(r.items)))throw new Error('O ficheiro não contém divisões e artigos válidos.');
+      if(!data||!Array.isArray(data.rooms)||!data.rooms.length||!data.rooms.every(r=>r&&Array.isArray(r.items)&&r.items.every(item=>item&&typeof item==='object'&&!Array.isArray(item))))throw new Error('O ficheiro não contém divisões e artigos válidos.');
       if(!confirm('O backup contém '+data.rooms.length+' divisões. Queres substituir o estado atual? A versão atual será preservada no histórico.'))return;
       if(!window.__bbApplySnapshot?.(data))throw new Error('Não foi possível aplicar o backup.');
       alert('Backup aplicado. A sincronização online será iniciada automaticamente.');
