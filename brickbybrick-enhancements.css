@@ -81,3 +81,19 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 @media print{.bb-global-tools,.tabs,.bb-filterbar,.bb-management-actions,.bb-shortcuts{display:none!important}.bb-kpi,.bb-analysis-card{box-shadow:none}}
 
 .bb-view-image{width:34px;height:34px;object-fit:cover;border-radius:8px;border:1px solid var(--bb-border);vertical-align:middle;margin-right:8px}.is-done .bb-photo-editor{display:none}
+
+.bb-filterbar{grid-template-columns:minmax(180px,1.3fr) repeat(5,minmax(110px,.7fr))}
+.bb-incomplete{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:6px;background:#fff2d8;color:#825b16;font-size:9px;font-weight:800;line-height:1.35;white-space:nowrap}
+.bb-appliance-group .category-header{background:#edf3f7;color:#39556d;border-left:3px solid #6f91ad;padding-left:9px}
+.bb-furniture-group .category-header{background:#f5f1eb;color:#66523b;border-left:3px solid #b49b7a;padding-left:9px}
+.bb-details{padding:5px 8px!important;margin-right:3px;background:#eef2f6!important;color:#40566c!important;border-radius:7px!important;font-size:14px}
+.bb-detail-backdrop{position:fixed;inset:0;z-index:10020;background:rgba(13,25,39,.62);display:flex;align-items:center;justify-content:center;padding:18px}
+.bb-detail-backdrop[hidden]{display:none}
+.bb-detail-dialog{position:relative;width:min(560px,100%);max-height:86vh;overflow:auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.25)}
+.bb-detail-dialog h3{font-size:22px;margin:12px 0}.bb-detail-dialog p{color:#5f6b7b;font-size:13px}.bb-detail-dialog h4{margin:18px 0 8px}
+.bb-detail-dialog>img{max-width:100%;max-height:230px;object-fit:contain;border-radius:12px;background:#f4f6f8}
+.bb-detail-dialog>img[hidden]{display:none}
+.bb-detail-close{position:absolute;right:14px;top:12px;border-radius:9px;padding:4px 10px;background:#eef2f6;color:#42566a;font-size:20px}
+.bb-detail-component{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--bb-border);font-size:13px}
+.bb-detail-component a{grid-column:1/-1;color:#315b7e;text-decoration:underline;font-size:12px}
+@media(max-width:620px){.bb-filterbar{grid-template-columns:1fr 1fr}.bb-incomplete{font-size:8px;margin-left:2px}.bb-detail-dialog{padding:18px}}
