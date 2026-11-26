@@ -165,9 +165,11 @@
     enhanceRow(copy);emitSave($('.furniture-name',copy));refreshAll();
   });
   $('#furniture-rooms')?.addEventListener('input',event=>{
-    if(event.target.matches('.furniture-name,.furniture-category,.component-name,.component-price,.component-qty,.furniture-qty,.bb-image-url')){const row=event.target.closest('tr');if(row)updateCompleteness(row);refreshAll();}
+    if(event.target.matches('.furniture-name,.furniture-category,.component-name,.component-price,.component-qty,.furniture-qty,.bb-image-url,.room-title')){const row=event.target.closest('tr');if(row)updateCompleteness(row);refreshAll();}
   });
   $('#furniture-rooms')?.addEventListener('change',refreshAll);
+  document.addEventListener('input',event=>{if(event.target.matches('.val-input,.item-check'))refreshAll();});
+  document.addEventListener('change',event=>{if(event.target.matches('.item-check,.item-check-furn'))refreshAll();});
   function moneyFromId(id){return parseEuro($('#'+id)?.textContent||'0');}
   function renderDashboard(){
     const work=moneyFromId('grand-total'),furn=moneyFromId('furniture-grand-total'),combined=moneyFromId('combined-grand-total');
