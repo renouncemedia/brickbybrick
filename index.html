@@ -805,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isChecked = data.checked !== false;
     if (!isChecked) row.classList.add('unselected');
     row.dataset.image = data.image || '';
+    row.dataset.actualPrice = data.actualPrice || '';
     const rowCategory = registerCategory(data.category || 'Móvel');
     let components = Array.isArray(data.links) && data.links.length ? data.links : (data.link ? [data.link] : []);
     components = components.map((component, index) => typeof component === 'string'
@@ -1308,7 +1309,7 @@ function getCurrentFurnitureRooms(){
     items:Array.from(room.querySelectorAll('.furniture-table tbody tr')).map(row=>({
       name:row.querySelector('.furniture-name')?.value||'',
       checked:row.querySelector('.item-check-furn')?.checked!==false,
-      image:row.dataset.image||'',
+      image:row.dataset.image||'',actualPrice:row.dataset.actualPrice||'',
       category:row.querySelector('.furniture-category')?.value||'Móvel',
       mode:row.querySelector('.purchase-mode')?.value||'complete',
       links:Array.from(row.querySelectorAll('.furniture-link-row')).map(c=>({name:c.querySelector('.component-name')?.value||'',url:c.querySelector('.furniture-link')?.value||'',qty:c.querySelector('.component-qty')?.value||'1',price:c.querySelector('.component-price')?.value||'0'})),
@@ -1374,6 +1375,7 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
         name: row.querySelector('.furniture-name')?.value || '',
         checked: row.querySelector('.item-check-furn') ? row.querySelector('.item-check-furn').checked : true,
         image: row.dataset.image || '',
+        actualPrice: row.dataset.actualPrice || '',
         category: row.querySelector('.furniture-category')?.value || 'Móvel',
         link: row.querySelector('.furniture-link')?.value || '',
         mode: row.querySelector('.purchase-mode')?.value || 'complete',
