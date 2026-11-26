@@ -136,7 +136,8 @@
       });
       image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';});
     }
-    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';line.prepend(preview);}}\n    const lastCell=row.lastElementChild;
+    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';line.prepend(preview);}}
+    const lastCell=row.lastElementChild;
     if(lastCell&&!$('.bb-duplicate',lastCell)){
       const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='bb-duplicate';duplicate.textContent='⧉';duplicate.title='Duplicar artigo';duplicate.setAttribute('aria-label','Duplicar artigo');
       const remove=$('.remove-furniture',lastCell);if(remove)lastCell.insertBefore(duplicate,remove);else lastCell.appendChild(duplicate);
@@ -195,7 +196,8 @@
     const work=ids.map(([label,id])=>({label,value:moneyFromId(id)})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);
     chartRows('bb-analysis-rooms',rooms);chartRows('bb-analysis-work',work);
     const total=moneyFromId('combined-grand-total'),workTotal=moneyFromId('grand-total'),furnTotal=moneyFromId('furniture-grand-total');
-    const ratio=total?Math.round(furnTotal/total*100):0;\n    const ratioEl=$('#bb-analysis-ratio');if(ratioEl)ratioEl.textContent=ratio+'%';
+    const ratio=total?Math.round(furnTotal/total*100):0;
+    const ratioEl=$('#bb-analysis-ratio');if(ratioEl)ratioEl.textContent=ratio+'%';
     const el=$('#bb-analysis-note');if(el)el.textContent='Os móveis representam '+ratio+'% do total combinado. Valores calculados a partir dos artigos atualmente incluídos no orçamento.';
     const a=$('#bb-analysis-work-total'),b=$('#bb-analysis-furniture-total'),c=$('#bb-analysis-combined-total');
     if(a)a.textContent=euro(workTotal);if(b)b.textContent=euro(furnTotal);if(c)c.textContent=euro(total);
