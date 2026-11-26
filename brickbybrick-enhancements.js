@@ -54,7 +54,9 @@
       $('strong',button).textContent=item.name;$('small',button).textContent=item.meta;
       button.addEventListener('click',()=>{
         if(item.kind==='furniture'){
-          activateTab('moveis-panel');item.room.hidden=false;item.room.classList.remove('collapsed');
+          activateTab('moveis-panel');
+          ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max'].forEach(id=>{const control=$('#'+id);if(control)control.value='';});applyFilters();
+          item.room.hidden=false;item.room.classList.remove('collapsed');
           const group=item.row.closest('.category-group');if(group){group.hidden=false;group.classList.remove('is-collapsed');const table=$('.furniture-table',group);if(table)table.hidden=false;}
         }else activateTab('orcamento-panel');
         resultsBox.classList.remove('is-open');globalSearch.value='';
@@ -109,7 +111,8 @@
         });
         group.classList.toggle('bb-hidden-by-filter',!groupHas);
       });
-      room.classList.toggle('bb-hidden-by-filter',!roomHas);
+      const hasActiveFilter=!!(query||roomFilter||catFilter||minRaw!==''||maxRaw!=='');
+      room.classList.toggle('bb-hidden-by-filter',!roomHas&&hasActiveFilter);
     });
     const count=$('#bb-filter-count');if(count)count.textContent='A mostrar '+shown+' de '+total+' artigos';
   }
@@ -133,7 +136,7 @@
       });
       image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';});
     }
-    const lastCell=row.lastElementChild;
+    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';line.prepend(preview);}}\n    const lastCell=row.lastElementChild;
     if(lastCell&&!$('.bb-duplicate',lastCell)){
       const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='bb-duplicate';duplicate.textContent='⧉';duplicate.title='Duplicar artigo';duplicate.setAttribute('aria-label','Duplicar artigo');
       const remove=$('.remove-furniture',lastCell);if(remove)lastCell.insertBefore(duplicate,remove);else lastCell.appendChild(duplicate);
@@ -192,7 +195,7 @@
     const work=ids.map(([label,id])=>({label,value:moneyFromId(id)})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);
     chartRows('bb-analysis-rooms',rooms);chartRows('bb-analysis-work',work);
     const total=moneyFromId('combined-grand-total'),workTotal=moneyFromId('grand-total'),furnTotal=moneyFromId('furniture-grand-total');
-    const ratio=total?Math.round(furnTotal/total*100):0;
+    const ratio=total?Math.round(furnTotal/total*100):0;\n    const ratioEl=$('#bb-analysis-ratio');if(ratioEl)ratioEl.textContent=ratio+'%';
     const el=$('#bb-analysis-note');if(el)el.textContent='Os móveis representam '+ratio+'% do total combinado. Valores calculados a partir dos artigos atualmente incluídos no orçamento.';
     const a=$('#bb-analysis-work-total'),b=$('#bb-analysis-furniture-total'),c=$('#bb-analysis-combined-total');
     if(a)a.textContent=euro(workTotal);if(b)b.textContent=euro(furnTotal);if(c)c.textContent=euro(total);
@@ -218,7 +221,7 @@
   }
   function refreshAll(){renderDashboard();renderAnalysis();renderHistory();enhanceAllRows();}
   const download=(filename,content,type)=>{
-    const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
   $('#bb-export-backup')?.addEventListener('click',()=>{
     const snapshot=window.__bbGetSnapshot?.();if(!snapshot?.rooms?.length){alert('Os dados online ainda não estão carregados.');return;}
@@ -240,7 +243,7 @@
     const target=$('#furniture-rooms');
     if(target){const observer=new MutationObserver(()=>{enhanceAllRows();renderDashboard();renderAnalysis();});observer.observe(target,{childList:true,subtree:true});}
     const status=$('#cloud-save-status');
-    if(status)new MutationObserver(()=>{const ready=status.textContent.includes('sincronizados')||status.textContent.includes('Guardado online');$$('#bb-export-backup,#bb-import-backup').forEach(b=>b.disabled=!ready);}).observe(status,{childList:true,characterData:true,subtree:true});
+    if(status){const syncButtons=()=>{const ready=status.textContent.includes('sincronizados')||status.textContent.includes('Guardado online');$('#bb-export-backup,#bb-import-backup').forEach(b=>b.disabled=!ready);};new MutationObserver(syncButtons).observe(status,{childList:true,characterData:true,subtree:true});syncButtons();}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refreshAllWhenReady,{once:true});else refreshAllWhenReady();
   window.addEventListener('resize',()=>renderAnalysis());
