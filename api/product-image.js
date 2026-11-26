@@ -64,6 +64,37 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method === 'GET') {
+    try {
+      const rawImage = typeof req.query?.image === 'string' ? req.query.image : '';
+      if (!rawImage || rawImage.length > 4096) return res.status(400).end('URL inválido');
+      let imageUrl = new URL(rawImage);
+      let imageResponse;
+      for (let redirects = 0; redirects <= 3; redirects++) {
+        await validateHost(imageUrl);
+        imageResponse = await fetch(imageUrl, {
+          redirect: 'manual', signal: AbortSignal.timeout(9000),
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36', Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8' }
+        });
+        if (![301, 302, 303, 307, 308].includes(imageResponse.status)) break;
+        const location = imageResponse.headers.get('location');
+        if (!location || redirects === 3) throw new Error('Demasiados redireccionamentos');
+        imageUrl = new URL(location, imageUrl);
+      }
+      if (!imageResponse.ok) return res.status(502).end('A loja não permitiu carregar a imagem');
+      const type = (imageResponse.headers.get('content-type') || '').split(';')[0].toLowerCase();
+      if (!type.startsWith('image/') || type === 'image/svg+xml') return res.status(415).end('O endereço não devolveu uma imagem suportada');
+      const buffer = Buffer.from(await imageResponse.arrayBuffer());
+      if (!buffer.length || buffer.length > 5 * 1024 * 1024) return res.status(413).end('Imagem demasiado grande');
+      res.setHeader('Content-Type', type);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return res.status(200).send(buffer);
+    } catch (error) {
+      return res.status(502).end(error.message || 'Não foi possível carregar a imagem');
+    }
+  }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
   const raw = req.body?.url;
   if (typeof raw !== 'string' || raw.length > 2048) return res.status(400).json({ error: 'Link inválido' });
@@ -86,7 +117,10 @@ module.exports = async (req, res) => {
         continue;
       }
       if (!response.ok) break;
-      const type = response.headers.get('content-type') || '';
+      const type = (response.headers.get('content-type') || '').split(';')[0].toLowerCase();
+      if (type.startsWith('image/') && type !== 'image/svg+xml') {
+        return res.status(200).json({ image: '/api/product-image?image=' + encodeURIComponent(current.href) });
+      }
       if (!type.includes('text/html') && !type.includes('application/xhtml+xml')) break;
       const declaredLength = Number(response.headers.get('content-length') || 0);
       if (declaredLength > 1200000) break;
@@ -104,7 +138,7 @@ module.exports = async (req, res) => {
     if (!html) return res.status(422).json({ error: 'Não foi possível ler a página desta loja. Pode bloquear consultas automáticas.' });
     const image = findImage(html, current.href);
     if (!image) return res.status(404).json({ error: 'A página não disponibiliza uma imagem de produto reconhecível.' });
-    return res.status(200).json({ image, page: current.origin });
+    return res.status(200).json({ image: '/api/product-image?image=' + encodeURIComponent(image), page: current.origin });
   } catch (_) {
     return res.status(502).json({ error: 'Não foi possível obter a imagem deste link.' });
   }
