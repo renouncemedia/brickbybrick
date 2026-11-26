@@ -201,3 +201,142 @@ button:focus-visible,input:focus-visible,select:focus-visible{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* Brick by Brick — segunda passagem visual: hierarquia e composição mais marcadas */
+:root{
+ --bb-paper:#f2f1ed;
+ --bb-surface:#fff;
+ --bb-ink:#202a33;
+ --bb-muted:#78828a;
+ --bb-line:#e4e6e3;
+ --bb-deep:#253d4d;
+ --bb-soft:#e9eeeb;
+}
+body{background:var(--bb-paper);color:var(--bb-ink);letter-spacing:-.008em}
+.wrap{max-width:1360px;padding:30px 34px 80px}
+#cloud-save-status{font-size:11px!important;letter-spacing:.035em;color:#738078!important}
+.actions{margin-bottom:18px}
+header{
+ position:relative;overflow:hidden;
+ display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr);
+ align-items:end;column-gap:34px;
+ min-height:228px;padding:34px 38px;margin-bottom:26px;
+ background:#263f50;border:0;border-radius:20px;
+ box-shadow:0 16px 38px rgba(32,49,60,.13)
+}
+header:after{content:"";position:absolute;width:360px;height:360px;right:5%;top:-230px;border:1px solid rgba(255,255,255,.13);border-radius:50%;box-shadow:0 0 0 35px rgba(255,255,255,.025),0 0 0 75px rgba(255,255,255,.02);pointer-events:none}
+header .eyebrow{font-size:10px;letter-spacing:.19em;color:#d7e1e3;opacity:.85}
+header h1{max-width:620px;font-size:clamp(30px,4vw,47px);line-height:1.04;letter-spacing:-.055em;margin:12px 0 15px}
+header>p{font-size:13px;color:#d6e0e3}
+header .meta{grid-column:2;grid-row:1 / span 4;align-self:end;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0;position:relative;z-index:1}
+header .meta div{min-height:72px;padding:13px 14px;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.13);border-radius:12px}
+header .meta small{font-size:9px;letter-spacing:.12em;color:#c5d2d6}
+header .meta strong{font-size:13px;color:#fff}
+.tabs{
+ position:sticky;top:10px;z-index:50;display:flex;gap:5px;flex-wrap:wrap;
+ width:max-content;max-width:100%;padding:6px;margin:0 0 28px;
+ background:rgba(255,255,255,.92);border:1px solid #e2e5e2;border-radius:13px;
+ box-shadow:0 7px 22px rgba(35,48,54,.07);backdrop-filter:blur(14px)
+}
+.tab-btn{border:0;border-radius:9px;background:transparent;color:#65717a;padding:10px 15px;font-size:12px;font-weight:650;letter-spacing:.005em}
+.tab-btn:hover{background:#f0f2ef;color:#263f50}
+.tab-btn.active{background:#263f50;color:#fff;box-shadow:0 3px 8px rgba(38,63,80,.18)}
+.tab-panel{animation:bb-panel-in .22s ease both}
+@keyframes bb-panel-in{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.bb-page-head{display:flex;align-items:end;justify-content:space-between;margin:0 0 22px;padding:0 0 17px;border-bottom:1px solid #dfe2de}
+.bb-page-head h2{font-size:29px;line-height:1.12;letter-spacing:-.055em;color:#263a49;margin:0 0 6px}
+.bb-page-head p{font-size:13px;color:#78828a;margin:0}
+#dashboard-panel>h3,#dashboard-panel>h3:not(:first-child){font-size:11px;text-transform:uppercase;letter-spacing:.13em;color:#78828a;margin:28px 0 12px}
+.bb-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:0 0 26px}
+.bb-kpi{
+ position:relative;min-height:132px;padding:20px 19px 17px;
+ display:flex;flex-direction:column;justify-content:space-between;gap:13px;
+ background:#fff;border:1px solid #e4e6e3;border-radius:15px;box-shadow:0 5px 18px rgba(34,48,54,.035)
+}
+.bb-kpi:before{content:"";position:absolute;left:0;top:17px;bottom:17px;width:3px;background:#a5b8b0;border-radius:0 3px 3px 0}
+.bb-kpi small{font-size:9px;line-height:1.4;font-weight:750;letter-spacing:.12em;color:#7a8589}
+.bb-kpi strong{font-size:clamp(22px,2.4vw,30px);line-height:1.08;letter-spacing:-.055em;color:#263f50;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.bb-kpi span{font-size:11px;color:#929b9d}
+.bb-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bb-shortcut{
+ min-height:92px;display:flex;align-items:center;justify-content:space-between;gap:15px;
+ padding:17px 18px;background:#e8ede9;border:1px solid #dfe5df;border-radius:13px;
+ color:#2b4654;text-align:left;box-shadow:none
+}
+.bb-shortcut strong{display:block;font-size:13px;font-weight:750}
+.bb-shortcut small{display:block;margin-top:5px;font-size:11px;line-height:1.4;color:#75817f}
+.bb-shortcut>span:last-child{font-size:20px;color:#71867d}
+.bb-shortcut:hover{background:#dfe8e1;border-color:#cbd8ce;transform:translateY(-2px);box-shadow:0 8px 18px rgba(35,55,47,.07)}
+.bb-room-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bb-room-card{padding:18px;background:#fff;border:1px solid #e3e6e2;border-radius:14px;box-shadow:none}
+.bb-room-card:hover{border-color:#b9c9bf;transform:translateY(-1px)}
+.bb-room-card strong{font-size:14px;color:#2c4350}
+.bb-filterbar{padding:14px;background:#fff;border:1px solid #e2e5e2;border-radius:14px;box-shadow:none}
+.bb-filterbar input,.bb-filterbar select,.bb-search-wrap input{min-height:42px;background:#f7f8f6;border:1px solid #e4e7e3;border-radius:9px}
+#furniture-rooms{gap:13px}
+.room-furniture{background:#fff;border:1px solid #e1e5e1;border-radius:15px;box-shadow:0 4px 16px rgba(34,48,54,.035)}
+.room-furniture-head{min-height:76px;padding:17px 21px;background:#fff}
+.room-furniture-head h3{font-size:17px;font-weight:720;letter-spacing:-.025em;color:#293f4c}
+.room-furniture-head:hover{background:#f8faf8}
+.room-total{font-size:16px;font-weight:750;color:#344f5c}
+.room-furniture .furniture-body{padding:0 21px 19px}
+.category-group{margin-top:8px;padding-top:12px;border-top:1px solid #edf0ec}
+.category-header{padding:8px 10px;background:#eef2ee;border-radius:7px;color:#52665e;font-size:10px;letter-spacing:.13em}
+.category-header .cat-total{font-size:12px;color:#304a55}
+.furniture-table th{color:#8a9493;font-size:9px;letter-spacing:.12em;padding:12px 10px 10px 0}
+.furniture-table td{padding:11px 10px 11px 0;border-top:1px solid #f0f1ee}
+.furniture-table input,.furniture-table select{background:#f7f8f6;border:1px solid #e8ebe7;border-radius:8px;min-height:39px}
+.furniture-table .furniture-name{background:#fff;border-color:#e5e9e5;font-weight:650}
+.furniture-table .line-total{color:#304a55;font-size:13px;font-weight:750}
+.furniture-actions .add-furniture{background:#e8eee9;color:#345347;border-radius:9px;padding:10px 14px}
+.furniture-totalband,.totalband,.general-summary{background:#fff;border:1px solid #e2e5e1;border-radius:15px;box-shadow:none}
+.totalband{padding:21px 24px}
+.totalband .total{color:#263f50;font-size:36px}
+.card{border-radius:15px;box-shadow:0 4px 16px rgba(34,48,54,.035)}
+.cardhead{padding:19px 21px}
+.cardhead h3{font-size:16px;letter-spacing:-.025em;color:#2b414e}
+.cardhead p{font-size:12px}
+.cardbody{padding:0 21px 18px}
+.section{padding:21px;border-radius:15px}
+.bb-analysis-card,.bb-management-card{background:#fff;border:1px solid #e2e5e1;border-radius:15px;box-shadow:none;padding:21px}
+.bb-analysis-card h3,.bb-management-card h3{font-size:15px;letter-spacing:-.025em;color:#304653}
+button{transition:background-color .16s,border-color .16s,transform .16s,box-shadow .16s}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(116,147,132,.3);outline-offset:2px}
+@media(max-width:900px){
+ .wrap{padding:22px 18px 70px}
+ header{grid-template-columns:1fr;min-height:0;gap:18px}
+ header .meta{grid-column:1;grid-row:auto;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .bb-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .bb-shortcuts{grid-template-columns:1fr}
+ .bb-room-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+ .wrap{padding:12px 12px calc(88px + env(safe-area-inset-bottom,0px))}
+ header{padding:23px 20px;border-radius:16px;gap:14px}
+ header h1{font-size:30px;max-width:100%}
+ header .meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ header .meta div{min-height:63px;padding:10px}
+ .tabs{position:sticky;top:0;width:calc(100% + 24px);max-width:none;margin:0 -12px 22px;padding:7px 9px;border-radius:0 0 13px 13px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+ .tabs::-webkit-scrollbar{display:none}
+ .tab-btn{flex:0 0 auto;min-height:42px;padding:9px 12px;font-size:11px}
+ .bb-page-head{margin-bottom:17px;padding-bottom:13px}
+ .bb-page-head h2{font-size:25px}
+ .bb-kpi-grid{gap:8px;margin-bottom:20px}
+ .bb-kpi{min-height:112px;padding:15px 13px 13px;border-radius:12px}
+ .bb-kpi:before{top:13px;bottom:13px}
+ .bb-kpi strong{font-size:clamp(19px,5vw,25px)}
+ .bb-kpi small{font-size:8px}
+ .bb-shortcuts{gap:8px}
+ .bb-shortcut{min-height:76px;padding:13px 14px}
+ .bb-room-overview{grid-template-columns:1fr 1fr;gap:8px}
+ .bb-room-card{padding:13px}
+ .room-furniture{border-radius:12px}
+ .room-furniture-head{min-height:64px;padding:14px}
+ .room-furniture .furniture-body{padding:0 12px 13px}
+ .category-header{padding:8px}
+ .furniture-table tr{border-radius:9px}
+ .bb-analysis-card,.bb-management-card{padding:15px}
+}
+@media(prefers-reduced-motion:reduce){.tab-panel{animation:none}}
