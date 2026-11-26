@@ -131,7 +131,33 @@
       const image=document.createElement('img');image.alt='Fotografia do artigo';image.hidden=true;
       const imageInput=document.createElement('input');imageInput.type='url';imageInput.className='bb-image-url';imageInput.placeholder='URL da fotografia';imageInput.setAttribute('aria-label','URL da fotografia do artigo');
       const current=safeUrl(row.dataset.image||'');if(current){image.src=current;image.hidden=false;imageInput.value=current;}
-      editor.append(image,imageInput);firstCell.appendChild(editor);
+      const fetchButton=document.createElement('button');fetchButton.type='button';fetchButton.className='bb-fetch-product-image';fetchButton.textContent='Obter do link do produto';
+      const fetchStatus=document.createElement('span');fetchStatus.className='bb-image-fetch-status';fetchStatus.setAttribute('aria-live','polite');
+      editor.append(image,imageInput,fetchButton,fetchStatus);firstCell.appendChild(editor);
+      fetchButton.addEventListener('click',async()=>{
+        const links=$('.furniture-link-row .furniture-link',row).map(input=>safeUrl(input.value)).filter(Boolean);
+        if(!links.length){fetchStatus.textContent='Adiciona primeiro o link do produto.';return;}
+        fetchButton.disabled=true;fetchStatus.textContent='A procurar fotografia…';
+        try{
+          let found=null,lastError='';
+          for(const link of links){
+            const response=await fetch('/api/product-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:link})});
+            const data=await response.json().catch(()=>({}));
+            if(response.ok&&data.image){found=data.image;break;}
+            lastError=data.error||'Não foi possível obter a imagem.';
+          }
+          if(!found)throw new Error(lastError||'Nenhum dos links disponibilizou uma imagem.');
+          image.src=found;image.hidden=false;
+          fetchStatus.textContent='Pré-visualização encontrada. Confirma para guardar.';
+          let saveButton=$('.bb-save-found-image',editor);
+          if(!saveButton){saveButton=document.createElement('button');saveButton.type='button';saveButton.className='bb-save-found-image';saveButton.textContent='Guardar fotografia';editor.appendChild(saveButton);}
+          saveButton.onclick=()=>{
+            row.dataset.image=found;imageInput.value=found;emitSave($('.furniture-name',row));
+            fetchStatus.textContent='Fotografia guardada no artigo.';saveButton.remove();
+          };
+        }catch(error){fetchStatus.textContent=error.message;}
+        finally{fetchButton.disabled=false;}
+      });
       imageInput.addEventListener('input',()=>{
         const url=safeUrl(imageInput.value);row.dataset.image=url;
         if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}

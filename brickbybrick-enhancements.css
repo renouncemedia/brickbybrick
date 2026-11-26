@@ -472,3 +472,13 @@ input,select,textarea{accent-color:var(--bb-sage)}
   .bb-view-image{width:38px;height:38px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Pesquisa automática da fotografia através do link do produto */
+.bb-photo-editor{flex-wrap:wrap}
+.bb-fetch-product-image,.bb-save-found-image{
+  min-height:34px;padding:7px 10px;border:1px solid #dce6de;border-radius:8px;
+  background:#eaf1eb;color:#345747;font-size:11px;font-weight:700;white-space:nowrap;
+}
+.bb-fetch-product-image:disabled{opacity:.55;cursor:wait}
+.bb-image-fetch-status{flex:1 1 100%;font-size:11px;line-height:1.4;color:#68776f}
+.bb-save-found-image{background:#263f50;color:#fff;border-color:#263f50}
