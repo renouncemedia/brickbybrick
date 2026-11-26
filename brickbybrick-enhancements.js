@@ -8,7 +8,7 @@
   const safeUrl = value => { try { const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
   const emitSave = element => { const target=element||$('.furniture-name'); if(target) target.dispatchEvent(new Event('input',{bubbles:true})); };
   const activateTab = id => {
-    $$$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
+    $('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
     $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
     const panel=$('#'+id); if(panel) panel.scrollIntoView({block:'start',behavior:'smooth'});
     refreshAll();
