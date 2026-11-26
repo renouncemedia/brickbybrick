@@ -74,7 +74,7 @@
   if(furniturePanel){
     const intro=$('.furniture-intro',furniturePanel);
     const filter=document.createElement('div');filter.className='bb-filterbar';filter.id='bb-furniture-filters';
-    filter.innerHTML='<div><label for="bb-filter-search">Pesquisa nesta área</label><input id="bb-filter-search" type="search" placeholder="Nome ou componente"></div><div><label for="bb-filter-room">Divisão</label><select id="bb-filter-room"><option value="">Todas as divisões</option></select></div><div><label for="bb-filter-category">Categoria</label><select id="bb-filter-category"><option value="">Todas as categorias</option></select></div><div><label for="bb-filter-min">Preço mínimo (€)</label><input id="bb-filter-min" type="number" min="0" step="0.01" placeholder="0"></div><div><label for="bb-filter-max">Preço máximo (€)</label><input id="bb-filter-max" type="number" min="0" step="0.01" placeholder="Sem limite"></div><div class="bb-filter-count" id="bb-filter-count">A mostrar todos os artigos</div>';
+    filter.innerHTML='<div><label for="bb-filter-search">Pesquisa nesta área</label><input id="bb-filter-search" type="search" placeholder="Nome ou componente"></div><div><label for="bb-filter-room">Divisão</label><select id="bb-filter-room"><option value="">Todas as divisões</option></select></div><div><label for="bb-filter-category">Categoria</label><select id="bb-filter-category"><option value="">Todas as categorias</option></select></div><div><label for="bb-filter-min">Preço mínimo (€)</label><input id="bb-filter-min" type="number" min="0" step="0.01" placeholder="0"></div><div><label for="bb-filter-max">Preço máximo (€)</label><input id="bb-filter-max" type="number" min="0" step="0.01" placeholder="Sem limite"></div><div><label for="bb-filter-sort">Ordenar por</label><select id="bb-filter-sort"><option value="">Ordem original</option><option value="name">Nome (A–Z)</option><option value="price-desc">Preço (maior primeiro)</option><option value="price-asc">Preço (menor primeiro)</option><option value="qty-desc">Quantidade (maior primeiro)</option></select></div><div class="bb-filter-count" id="bb-filter-count">A mostrar todos os artigos</div>';
     if(intro)intro.insertAdjacentElement('afterend',filter);else furniturePanel.prepend(filter);
   }
   function refreshFilterOptions(){
@@ -93,11 +93,13 @@
     const roomFilter=$('#bb-filter-room')?.value||'',catFilter=$('#bb-filter-category')?.value||'';
     const minRaw=$('#bb-filter-min')?.value,maxRaw=$('#bb-filter-max')?.value;
     const min=minRaw===''?-Infinity:Number(minRaw),max=maxRaw===''?Infinity:Number(maxRaw);
+    const sortMode=$('#bb-filter-sort')?.value||'';
     let shown=0,total=0;
     $$('#furniture-rooms .room-furniture').forEach(room=>{
       const roomName=$('.room-title',room)?.textContent.trim()||'';
       let roomHas=false;
-      $$('.category-group',room).forEach(group=>{
+      $('.category-group',room).forEach(group=>{
+        const tbody=$('tbody',group);if(tbody&&sortMode){const rows=$('tr',tbody);rows.sort((a,b)=>{if(sortMode==='name')return ($('.furniture-name',a)?.value||'').localeCompare($('.furniture-name',b)?.value||'','pt');const av=sortMode.startsWith('qty')?Number($('.furniture-qty',a)?.value||0):parseEuro(a.dataset.line||$('.line-total',a)?.textContent);const bv=sortMode.startsWith('qty')?Number($('.furniture-qty',b)?.value||0):parseEuro(b.dataset.line||$('.line-total',b)?.textContent);return sortMode.endsWith('asc')?av-bv:bv-av;});rows.forEach(row=>tbody.appendChild(row));}
         let groupHas=false;
         $$('tbody tr',group).forEach(row=>{
           total++;
@@ -138,13 +140,20 @@
     }
     if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';line.prepend(preview);}}
     const lastCell=row.lastElementChild;
+    updateCompleteness(row);
     if(lastCell&&!$('.bb-duplicate',lastCell)){
       const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='bb-duplicate';duplicate.textContent='⧉';duplicate.title='Duplicar artigo';duplicate.setAttribute('aria-label','Duplicar artigo');
       const remove=$('.remove-furniture',lastCell);if(remove)lastCell.insertBefore(duplicate,remove);else lastCell.appendChild(duplicate);
     }
+    if(lastCell&&!$('.bb-details',lastCell)){const details=document.createElement('button');details.type='button';details.className='bb-details';details.textContent='⋯';details.title='Ver detalhes do artigo';details.setAttribute('aria-label','Ver detalhes do artigo');const remove=$('.remove-furniture',lastCell);if(remove)lastCell.insertBefore(details,remove);else lastCell.appendChild(details);}
   }
-  function enhanceAllRows(){ $$('#furniture-rooms tbody tr').forEach(enhanceRow);refreshFilterOptions();applyFilters(); }
+  function updateCompleteness(row){const name=$('.furniture-name',row)?.value.trim()||'';const components=$('.furniture-link-row',row);const hasComponent=components.some(c=>($('.component-name',c)?.value.trim()||'')||($('.furniture-link',c)?.value.trim()||''));const hasPrice=components.some(c=>Number($('.component-price',c)?.value||0)>0);const incomplete=!name||!hasComponent||!hasPrice;let badge=$('.bb-incomplete',row);if(incomplete&&!badge){badge=document.createElement('span');badge.className='bb-incomplete';badge.textContent='Dados incompletos';badge.title='Falta o nome do artigo, componente/link ou preço';$('.furniture-name-wrap',row)?.appendChild(badge);}else if(!incomplete&&badge)badge.remove();}
+  function enhanceAllRows(){ $('#furniture-rooms tbody tr').forEach(enhanceRow);$('#furniture-rooms .category-group').forEach(group=>{const cat=(group.dataset.category||'').toLocaleLowerCase('pt-PT');group.classList.toggle('bb-appliance-group',cat.includes('eletrodoméstico')||cat.includes('máquina'));group.classList.toggle('bb-furniture-group',!cat.includes('eletrodoméstico')&&!cat.includes('máquina'));});refreshFilterOptions();applyFilters(); }
+  function showArticleDetails(row){const modal=$('#bb-detail-modal');if(!modal)return;const set=(id,value)=>{const el=$('#'+id,modal);if(el)el.textContent=value;};const name=$('.furniture-name',row)?.value.trim()||'Artigo sem nome';set('bb-detail-name',name);set('bb-detail-room',$('.room-title',row.closest('.room-furniture'))?.textContent.trim()||'—');set('bb-detail-category',$('.furniture-category',row)?.value||'—');set('bb-detail-quantity',$('.furniture-qty',row)?.value||'1');set('bb-detail-total',$('.line-total',row)?.textContent||'—');set('bb-detail-mode',$('.purchase-mode',row)?.selectedOptions?.[0]?.textContent||'—');const image=$('#bb-detail-image',modal),url=safeUrl(row.dataset.image||'');if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}const list=$('#bb-detail-components',modal);list.innerHTML='';$('.furniture-link-row',row).forEach(component=>{const item=document.createElement('div');item.className='bb-detail-component';const label=document.createElement('strong');label.textContent=$('.component-name',component)?.value||'Componente';const price=document.createElement('span');price.textContent=euro(Number($('.component-price',component)?.value||0))+' × '+($('.component-qty',component)?.value||'1');item.append(label,price);const link=safeUrl($('.furniture-link',component)?.value||'');if(link){const a=document.createElement('a');a.href=link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Abrir produto na loja';item.appendChild(a);}list.appendChild(item);});modal.hidden=false;}
+  const detailModal=document.createElement('div');detailModal.id='bb-detail-modal';detailModal.className='bb-detail-backdrop';detailModal.hidden=true;detailModal.innerHTML='<div class="bb-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="bb-detail-name"><button type="button" class="bb-detail-close" data-bb-detail-close aria-label="Fechar">×</button><img id="bb-detail-image" alt="Fotografia do artigo" hidden><h3 id="bb-detail-name"></h3><p><strong>Divisão:</strong> <span id="bb-detail-room"></span> · <strong>Categoria:</strong> <span id="bb-detail-category"></span></p><p><strong>Quantidade:</strong> <span id="bb-detail-quantity"></span> · <strong>Tipo:</strong> <span id="bb-detail-mode"></span></p><p><strong>Total:</strong> <span id="bb-detail-total"></span></p><h4>Componentes e ligações</h4><div id="bb-detail-components"></div></div>';document.body.appendChild(detailModal);
+  document.addEventListener('click',event=>{if(event.target.closest('[data-bb-detail-close]')||event.target===detailModal)detailModal.hidden=true;});
   $('#furniture-rooms')?.addEventListener('click',event=>{
+    const details=event.target.closest('.bb-details');if(details){showArticleDetails(details.closest('tr'));return;}
     const duplicate=event.target.closest('.bb-duplicate');if(!duplicate)return;
     const row=duplicate.closest('tr');if(!row)return;
     const copy=row.cloneNode(true);copy.dataset.bbEnhanced='1';copy.classList.remove('is-done','unselected');
@@ -156,7 +165,7 @@
     enhanceRow(copy);emitSave($('.furniture-name',copy));refreshAll();
   });
   $('#furniture-rooms')?.addEventListener('input',event=>{
-    if(event.target.matches('.furniture-name,.furniture-category,.component-name,.component-price,.component-qty,.furniture-qty,.bb-image-url')){refreshAll();}
+    if(event.target.matches('.furniture-name,.furniture-category,.component-name,.component-price,.component-qty,.furniture-qty,.bb-image-url')){const row=event.target.closest('tr');if(row)updateCompleteness(row);refreshAll();}
   });
   $('#furniture-rooms')?.addEventListener('change',refreshAll);
   function moneyFromId(id){return parseEuro($('#'+id)?.textContent||'0');}
@@ -196,9 +205,12 @@
     const work=ids.map(([label,id])=>({label,value:moneyFromId(id)})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);
     chartRows('bb-analysis-rooms',rooms);chartRows('bb-analysis-work',work);
     const total=moneyFromId('combined-grand-total'),workTotal=moneyFromId('grand-total'),furnTotal=moneyFromId('furniture-grand-total');
+    const purchasedValue=$('#furniture-rooms tbody tr.is-done').reduce((sum,row)=>sum+parseEuro(row.dataset.line||$('.line-total',row)?.textContent),0);
+    const purchasedEl=$('#bb-analysis-purchased-total');if(purchasedEl)purchasedEl.textContent=euro(purchasedValue);
     const ratio=total?Math.round(furnTotal/total*100):0;
     const ratioEl=$('#bb-analysis-ratio');if(ratioEl)ratioEl.textContent=ratio+'%';
-    const el=$('#bb-analysis-note');if(el)el.textContent='Os móveis representam '+ratio+'% do total combinado. Valores calculados a partir dos artigos atualmente incluídos no orçamento.';
+    const mostExpensive=rooms[0];
+    const el=$('#bb-analysis-note');if(el)el.textContent='Os móveis representam '+ratio+'% do total combinado. A divisão com maior custo registado é '+(mostExpensive?mostExpensive.label+' ('+euro(mostExpensive.value)+')':'ainda não determinada')+'. Valor marcado como comprado/concluído: '+euro(purchasedValue)+'.';
     const a=$('#bb-analysis-work-total'),b=$('#bb-analysis-furniture-total'),c=$('#bb-analysis-combined-total');
     if(a)a.textContent=euro(workTotal);if(b)b.textContent=euro(furnTotal);if(c)c.textContent=euro(total);
   }
