@@ -150,7 +150,7 @@ a.view-name:hover{color:#0f2236}
 @media print{.val-input{border:0;padding:0;background:transparent;-moz-appearance:textfield;appearance:textfield;width:80px}.val-input::-webkit-outer-spin-button,.val-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}}
 
 .furniture-intro{margin-bottom:12px;max-width:720px}
-.furniture-top-actions{justify-content:flex-end;margin:10px 0 18px}
+.furniture-top-actions{justify-content:flex-end;margin:10px 0 18px}.furniture-top-actions button:disabled{opacity:.55;cursor:not-allowed}
 #furniture-rooms{display:flex;flex-direction:column;gap:10px}
 .room-furniture{margin:0;padding:0;border:1px solid #dfe3e8;border-radius:12px;overflow:hidden;box-shadow:none;background:#fff}
 .room-furniture-head{margin:0;padding:16px 18px;min-height:66px;border-radius:0;background:#fff}
@@ -257,6 +257,7 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
 .view-meta{display:flex;align-items:baseline;gap:14px;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
 .view-meta .view-value{color:var(--ink);font-size:15px}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -456,6 +457,7 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
     <h2>Móveis por divisão</h2>
     <p class="furniture-intro">Organize os móveis e equipamentos por divisão. Os artigos ficam agrupados automaticamente pela categoria selecionada.</p>
     <div class="furniture-actions furniture-top-actions">
+      <button type="button" id="export-furniture-excel" disabled>Descarregar Excel</button>
       <button type="button" class="secondary" onclick="window.print()">Imprimir / Guardar em PDF</button>
     </div>
     <section class="general-summary" aria-label="Resumo geral">
@@ -1057,6 +1059,127 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+/* Exportação integral dos móveis por divisão para Excel — apenas leitura. */
+function exportFurnitureExcel() {
+  if (!window.XLSX) {
+    alert('Não foi possível carregar o módulo de Excel. Verifica a ligação à internet e tenta novamente.');
+    return;
+  }
+
+  const detailRows = [[
+    'Divisão','Categoria','Artigo','Tipo de compra','Quantidade do artigo',
+    'Estado','Incluído no orçamento','Componente','Link do produto',
+    'Quantidade do componente','Preço unitário (€)','Total do componente (€)','Total do artigo (€)'
+  ]];
+  const summary = new Map();
+  let overallAll = 0;
+  let overallSelected = 0;
+
+  const numberValue = (input, fallback = 0) => {
+    const n = Number.parseFloat(input?.value ?? fallback);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+
+  document.querySelectorAll('#furniture-rooms .room-furniture').forEach(room => {
+    const roomName = room.querySelector('.room-title')?.textContent.trim() || room.dataset.room || 'Divisão';
+    room.querySelectorAll('.category-group').forEach(group => {
+      const category = group.dataset.category || 'Outro';
+      group.querySelectorAll('.furniture-table tbody tr').forEach(row => {
+        const name = row.querySelector('.furniture-name')?.value.trim() || '';
+        const itemQty = numberValue(row.querySelector('.furniture-qty'), 1);
+        const mode = row.querySelector('.purchase-mode')?.value || 'complete';
+        const selected = row.querySelector('.item-check-furn')?.checked !== false;
+        const status = row.classList.contains('is-done') ? 'Comprado' : 'Por comprar';
+        const components = Array.from(row.querySelectorAll('.furniture-link-row')).map(component => ({
+          name: component.querySelector('.component-name')?.value.trim() || '',
+          url: component.querySelector('.furniture-link')?.value.trim() || '',
+          qty: numberValue(component.querySelector('.component-qty'), 1),
+          price: numberValue(component.querySelector('.component-price'), 0)
+        }));
+        const hasContent = name || components.some(c => c.name || c.url || c.price > 0);
+        if (!hasContent) return;
+        if (!components.length) components.push({name:'',url:'',qty:1,price:0});
+
+        const componentTotal = components.reduce((sum,c) => sum + c.qty * c.price, 0);
+        const articleTotal = (mode === 'complete' ? itemQty : 1) * componentTotal;
+        const effectiveMode = mode === 'individual' ? 'Componentes individuais' : 'Móvel completo';
+        const key = roomName + '::' + category;
+        if (!summary.has(key)) summary.set(key, {room:roomName,category,count:0,all:0,selected:0});
+        const entry = summary.get(key);
+        entry.count += 1;
+        entry.all += articleTotal;
+        if (selected) entry.selected += articleTotal;
+        overallAll += articleTotal;
+        if (selected) overallSelected += articleTotal;
+
+        components.forEach((component,index) => {
+          const componentLine = (mode === 'complete' ? itemQty : 1) * component.qty * component.price;
+          detailRows.push([
+            roomName, category, name, effectiveMode, itemQty, status,
+            selected ? 'Sim' : 'Não', component.name, component.url,
+            component.qty, component.price, componentLine,
+            index === 0 ? articleTotal : null
+          ]);
+        });
+      });
+    });
+  });
+
+  if (detailRows.length === 1) {
+    alert('Não existem artigos preenchidos para exportar.');
+    return;
+  }
+
+  const summaryRows = [[
+    'Divisão','Categoria','N.º de artigos','Total de todos os artigos (€)','Total incluído no orçamento (€)'
+  ]];
+  Array.from(summary.values()).forEach(entry => summaryRows.push([
+    entry.room, entry.category, entry.count, entry.all, entry.selected
+  ]));
+  summaryRows.push(['TOTAL GERAL','',Array.from(summary.values()).reduce((n,e)=>n+e.count,0),overallAll,overallSelected]);
+
+  const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
+  detailSheet['!cols'] = [
+    {wch:18},{wch:25},{wch:32},{wch:24},{wch:17},{wch:16},{wch:23},
+    {wch:28},{wch:48},{wch:18},{wch:18},{wch:22},{wch:20}
+  ];
+  detailSheet['!autofilter'] = {ref:'A1:M' + detailRows.length};
+  for (let r = 1; r < detailRows.length; r++) {
+    const link = detailRows[r][8];
+    if (link && (link.startsWith('http://') || link.startsWith('https://'))) {
+      const cell = XLSX.utils.encode_cell({r,c:8});
+      if (detailSheet[cell]) detailSheet[cell].l = {Target:link,Tooltip:'Abrir link do produto'};
+    }
+    [10,11,12].forEach(c => {
+      const cell = detailSheet[XLSX.utils.encode_cell({r,c})];
+      if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 [$€-pt-PT]';
+    });
+  }
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+  summarySheet['!cols'] = [{wch:20},{wch:28},{wch:16},{wch:30},{wch:34}];
+  for (let r = 1; r < summaryRows.length; r++) {
+    [3,4].forEach(c => {
+      const cell = summarySheet[XLSX.utils.encode_cell({r,c})];
+      if (cell && typeof cell.v === 'number') cell.z = '#,##0.00 [$€-pt-PT]';
+    });
+  }
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumo');
+  XLSX.utils.book_append_sheet(workbook, detailSheet, 'Móveis por divisão');
+  workbook.Props = {
+    Title:'Móveis por divisão',
+    Subject:'Exportação dos móveis e eletrodomésticos por divisão',
+    Author:'Brick by Brick'
+  };
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(workbook, 'moveis-por-divisao-' + date + '.xlsx');
+}
+
+document.getElementById('export-furniture-excel')?.addEventListener('click', exportFurnitureExcel);
+
 /* Sincronização online via API do Vercel */
 (() => {
   const API_URL = '/api/data';
@@ -1210,10 +1333,14 @@ document.addEventListener('DOMContentLoaded', () => {
       baseVersion = (result && result.version) || null;
       lastSavedSnapshot = JSON.stringify(getSnapshot());
       cloudReady = true;
+      const exportButton = document.getElementById('export-furniture-excel');
+      if (exportButton) exportButton.disabled = false;
       setCloudStatus('✓ Dados sincronizados online');
     } catch (error) {
       loadingCloudData = false;
       cloudReady = false;
+      const exportButton = document.getElementById('export-furniture-excel');
+      if (exportButton) exportButton.disabled = true;
       clearTimeout(saveTimer);
       setCloudStatus('Não foi possível ler os dados online — nada será guardado até a ligação voltar. A tentar de novo…', true);
       clearTimeout(retryTimer);
