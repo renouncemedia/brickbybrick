@@ -485,7 +485,6 @@ tr.is-done .view-line{display:flex;align-items:baseline;justify-content:space-be
   <section id="moveis-panel" class="tab-panel" hidden>
     <h2>Móveis por divisão</h2>
     <p class="furniture-intro">Organize os móveis e equipamentos por divisão. Os artigos ficam agrupados automaticamente pela categoria selecionada.</p>
-    <div id="bb-filter-anchor"></div>
     <div class="furniture-actions furniture-top-actions">
       <button type="button" id="export-furniture-excel" disabled>Descarregar Excel</button>
       <button type="button" id="import-furniture-excel" class="secondary" disabled>Importar Excel</button>
@@ -1352,6 +1351,7 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
   let saveTimer = null;
   let lastSavedSnapshot = '';
   let historyLog = [];
+  let forceHistoryCapture = false;
 
   const statusEl = () => document.getElementById('cloud-save-status');
   function setCloudStatus(message, isError = false) {
@@ -1461,6 +1461,7 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
   window.__bbApplySnapshot = function (state) {
     if (!state || !Array.isArray(state.rooms) || !state.rooms.length || !state.rooms.every(room => room && Array.isArray(room.items))) return false;
     loadingCloudData = true;
+    forceHistoryCapture = true;
     if (Array.isArray(state.checks)) document.querySelectorAll('.item-check').forEach((el,index) => { const saved=state.checks.find(item=>item.index===index); if(saved){el.checked=!!saved.checked;const input=el.closest('tr')?.querySelector('.val-input');if(input&&saved.value!=null)input.value=saved.value;} });
     if (Array.isArray(state.cards)) state.cards.forEach(item=>{const card=document.getElementById(item.id);if(card)card.classList.toggle('collapsed',!!item.collapsed);});
     renderRooms(state.rooms); collapseAllFurnitureGroups();
@@ -1558,9 +1559,10 @@ document.getElementById('cancel-furniture-import')?.addEventListener('click',can
     const comparable = value => ({ checks: value.checks || [], rooms: value.rooms || [], cards: value.cards || [], hallAdded: value.hallAdded !== false });
     if (previous && JSON.stringify(comparable(previous)) !== JSON.stringify(comparable(snapshot))) {
       const lastAt = historyLog.length ? Date.parse(historyLog[0].at || '') : 0;
-      if (!lastAt || Date.now() - lastAt > 30000) {
+      if (!lastAt || Date.now() - lastAt > 30000 || forceHistoryCapture) {
         historyLog.unshift({ id: Date.now(), at: new Date().toISOString(), label: 'Versão anterior do orçamento', data: comparable(previous) });
         historyLog = historyLog.slice(0, 8);
+        forceHistoryCapture = false;
       }
     }
     snapshot.history = historyLog;
