@@ -79,3 +79,5 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
  .bb-history-entry{align-items:flex-start;flex-direction:column}.bb-management-grid{grid-template-columns:1fr}
 }
 @media print{.bb-global-tools,.tabs,.bb-filterbar,.bb-management-actions,.bb-shortcuts{display:none!important}.bb-kpi,.bb-analysis-card{box-shadow:none}}
+
+.bb-view-image{width:34px;height:34px;object-fit:cover;border-radius:8px;border:1px solid var(--bb-border);vertical-align:middle;margin-right:8px}.is-done .bb-photo-editor{display:none}
