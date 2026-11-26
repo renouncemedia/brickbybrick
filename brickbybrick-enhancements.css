@@ -99,3 +99,105 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 @media(max-width:620px){.bb-filterbar{grid-template-columns:1fr 1fr}.bb-incomplete{font-size:8px;margin-left:2px}.bb-detail-dialog{padding:18px}}
 
 .bb-actual-label{display:block;margin:16px 0 5px;color:#586779;font-size:12px;font-weight:750}.bb-detail-dialog #bb-detail-actual-price{width:100%;min-height:42px;border:1px solid var(--bb-border);border-radius:9px;padding:9px 11px;font:inherit}
+
+
+/* Brick by Brick — modernização visual conservadora */
+:root{
+  --bb-radius:14px;
+  --bb-shadow:0 6px 22px rgba(31,45,61,.055);
+  --bb-border:#e6e9ed;
+  --bb-ink:#222a33;
+  --bb-muted:#707b88;
+  --bb-accent:#344d63;
+}
+body{background:#f6f7f8;color:var(--bb-ink)}
+.wrap{max-width:1280px;padding:24px 22px 72px}
+header{
+  background:linear-gradient(125deg,#2c4358,#405b70);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  box-shadow:0 10px 28px rgba(30,48,66,.10);
+  padding:26px 30px;
+}
+header .eyebrow{letter-spacing:.11em}
+header h1{letter-spacing:-.035em}
+.meta{gap:9px}
+.meta div{background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.13);border-radius:11px}
+.tabs{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:9px;margin:0 0 18px;
+  background:rgba(255,255,255,.92);
+  border:1px solid var(--bb-border);border-radius:14px;
+  box-shadow:0 3px 14px rgba(31,45,61,.035);
+  backdrop-filter:blur(12px);
+}
+.tab-btn{border:1px solid transparent;border-radius:9px;padding:9px 13px;color:#596777;background:transparent;font-size:13px}
+.tab-btn:hover{background:#f1f4f6;transform:none;box-shadow:none}
+.tab-btn.active{background:#344d63;color:#fff;box-shadow:0 3px 9px rgba(40,61,80,.15)}
+.bb-page-head{margin:18px 0 22px}
+.bb-page-head h2{color:#273746;letter-spacing:-.035em}
+.bb-page-head p,.bb-kpi span{color:var(--bb-muted)}
+.bb-kpi-grid{gap:12px;margin:18px 0 22px}
+.bb-kpi,.bb-analysis-card,.bb-management-card,.bb-room-card,.bb-shortcut{
+  border-color:var(--bb-border);border-radius:14px;box-shadow:var(--bb-shadow)
+}
+.bb-kpi{padding:18px 19px}
+.bb-kpi small{letter-spacing:.065em;color:#7a8490}
+.bb-kpi strong{color:#293b4b;letter-spacing:-.045em}
+.bb-shortcuts{gap:10px}
+.bb-shortcut{padding:15px 17px;color:#344d63;transition:border-color .15s,background .15s,transform .15s}
+.bb-shortcut:hover{background:#fbfcfd;border-color:#cbd5df;transform:translateY(-1px);box-shadow:0 7px 18px rgba(31,45,61,.07)}
+.bb-room-overview{gap:10px}
+.bb-room-card{padding:16px}
+.bb-room-card strong{color:#34495c}
+.bb-filterbar{border-color:var(--bb-border);border-radius:13px;box-shadow:var(--bb-shadow)}
+.bb-filterbar input,.bb-filterbar select,.bb-search-wrap input{
+  border-color:#dfe4e9;border-radius:10px
+}
+.bb-search-wrap input{box-shadow:none}
+.card,.section,.general-summary,.room-furniture,.totalband{
+  border-color:var(--bb-border);border-radius:14px;box-shadow:var(--bb-shadow)
+}
+.cardhead,.room-furniture-head{transition:background-color .15s ease}
+.room-furniture{overflow:hidden}
+.room-furniture-head{padding:15px 18px}
+.room-furniture-head h3{color:#2e4051}
+.room-total{color:#344d63;font-variant-numeric:tabular-nums}
+.category-header{letter-spacing:.045em}
+.bb-analysis-card{padding:19px}
+.bb-management-card{padding:19px}
+button{border-radius:9px}
+button:focus-visible,input:focus-visible,select:focus-visible{
+  outline:3px solid rgba(113,148,177,.35);outline-offset:2px
+}
+.furniture-table input,.furniture-table select{border-radius:8px}
+.furniture-table .furniture-name{font-weight:600}
+.furniture-table .remove-furniture{border-radius:8px}
+.furniture-actions .add-furniture{border-radius:9px}
+.import-modal-card,.bb-detail-dialog{border-radius:16px}
+.bb-empty{border-radius:13px}
+@media(max-width:900px){
+  .wrap{padding-left:16px;padding-right:16px}
+  .tabs{position:sticky;top:0;z-index:40}
+}
+@media(max-width:620px){
+  .wrap{padding:12px 10px calc(88px + env(safe-area-inset-bottom,0px))}
+  header{padding:19px 17px;border-radius:15px}
+  header h1{font-size:25px}
+  .tabs{margin:0 -10px 14px;padding:8px 10px;border-radius:0 0 12px 12px;gap:6px}
+  .tab-btn{min-height:40px;padding:8px 11px}
+  .bb-kpi{padding:13px 12px;border-radius:12px}
+  .bb-kpi small{font-size:9px}
+  .bb-kpi strong{font-size:clamp(18px,5vw,22px)}
+  .bb-room-overview{gap:8px}
+  .bb-room-card{padding:12px}
+  .bb-filterbar{gap:8px}
+  .room-furniture-head{padding:13px 12px}
+  .room-furniture .furniture-body{padding:0 10px 12px}
+  .furniture-table{min-width:620px}
+  .room-furniture{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .bb-analysis-card,.bb-management-card{padding:15px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
