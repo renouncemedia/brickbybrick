@@ -8,7 +8,7 @@
   const safeUrl = value => { try { const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
   const emitSave = element => { const target=element||$('.furniture-name'); if(target) target.dispatchEvent(new Event('input',{bubbles:true})); };
   const activateTab = id => {
-    $$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
+    $$$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
     $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
     const panel=$('#'+id); if(panel) panel.scrollIntoView({block:'start',behavior:'smooth'});
     refreshAll();
@@ -18,7 +18,7 @@
     const searchMarkup='<div class="bb-global-tools"><div class="bb-search-wrap"><span class="bb-search-icon" aria-hidden="true">⌕</span><input id="bb-global-search" type="search" placeholder="Pesquisar qualquer móvel, artigo ou trabalho…" autocomplete="off" aria-label="Pesquisa global"><div id="bb-search-results" class="bb-search-results" role="listbox"></div></div><div class="bb-global-hint">Pesquisa em todo o orçamento e em todas as divisões</div></div>';
     nav.insertAdjacentHTML('afterend',searchMarkup);
   }
-  $('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
+  $$('.tab-btn').forEach(button=>button.addEventListener('click',()=>activateTab(button.dataset.tab)));
   document.addEventListener('click',event=>{const shortcut=event.target.closest('[data-bb-go]');if(shortcut)activateTab(shortcut.dataset.bbGo);});
   document.addEventListener('click',event=>{ if(!event.target.closest('.bb-search-wrap')) $('#bb-search-results')?.classList.remove('is-open'); });
   const globalSearch = $('#bb-global-search');
@@ -270,7 +270,7 @@
     const target=$('#furniture-rooms');
     if(target){const observer=new MutationObserver(()=>{enhanceAllRows();renderDashboard();renderAnalysis();});observer.observe(target,{childList:true,subtree:true});const photoObserver=new MutationObserver(records=>records.forEach(record=>{const row=record.target;if(!row.matches('tr'))return;const url=safeUrl(row.dataset.image||'');const image=$('.bb-photo-editor img',row);const input=$('.bb-image-url',row);if(input&&document.activeElement!==input)input.value=url;if(image){if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}}if(row.classList.contains('is-done')){let preview=$('.bb-view-image',row);const line=$('.view-line',row);if(url&&line&&!preview){preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';line.prepend(preview);}if(preview){preview.src=url;preview.hidden=!url;}}}));photoObserver.observe(target,{attributes:true,attributeFilter:['data-image'],subtree:true});}
     const status=$('#cloud-save-status');
-    if(status){const syncButtons=()=>{const ready=status.textContent.includes('sincronizados')||status.textContent.includes('Guardado online');$$('#bb-export-backup,#bb-import-backup').forEach(b=>b.disabled=!ready);renderHistory();};new MutationObserver(syncButtons).observe(status,{childList:true,characterData:true,subtree:true});syncButtons();}
+    if(status){const syncButtons=()=>{const ready=status.textContent.includes('sincronizados')||status.textContent.includes('Guardado online');$('#bb-export-backup,#bb-import-backup').forEach(b=>b.disabled=!ready);renderDashboard();renderAnalysis();refreshFilterOptions();applyFilters();renderHistory();};new MutationObserver(syncButtons).observe(status,{childList:true,characterData:true,subtree:true});syncButtons();}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refreshAllWhenReady,{once:true});else refreshAllWhenReady();
   window.addEventListener('resize',()=>renderAnalysis());
