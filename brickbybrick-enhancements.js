@@ -118,7 +118,7 @@
     });
     const count=$('#bb-filter-count');if(count)count.textContent='A mostrar '+shown+' de '+total+' artigos';
   }
-  ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max'].forEach(id=>{
+  ['bb-filter-search','bb-filter-room','bb-filter-category','bb-filter-min','bb-filter-max','bb-filter-sort'].forEach(id=>{
     $('#'+id)?.addEventListener('input',applyFilters);$('#'+id)?.addEventListener('change',applyFilters);
   });
   function enhanceRow(row){
