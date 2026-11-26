@@ -97,3 +97,5 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .bb-detail-component{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--bb-border);font-size:13px}
 .bb-detail-component a{grid-column:1/-1;color:#315b7e;text-decoration:underline;font-size:12px}
 @media(max-width:620px){.bb-filterbar{grid-template-columns:1fr 1fr}.bb-incomplete{font-size:8px;margin-left:2px}.bb-detail-dialog{padding:18px}}
+
+.bb-actual-label{display:block;margin:16px 0 5px;color:#586779;font-size:12px;font-weight:750}.bb-detail-dialog #bb-detail-actual-price{width:100%;min-height:42px;border:1px solid var(--bb-border);border-radius:9px;padding:9px 11px;font:inherit}
