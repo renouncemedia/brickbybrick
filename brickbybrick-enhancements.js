@@ -7,6 +7,12 @@
   const parseEuro = text => Number(String(text||'').replace(/[^0-9,.-]/g,'').replace(/\.(?=.*[,])/g,'').replace(',','.'))||0;
   const safeUrl = value => { try { const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
   const emitSave = element => { const target=element||$('.furniture-name'); if(target) target.dispatchEvent(new Event('input',{bubbles:true})); };
+  const verifyImage = url => new Promise((resolve,reject)=>{
+    const probe=new Image();
+    probe.onload=()=>resolve(true);
+    probe.onerror=()=>reject(new Error('O endereço foi encontrado, mas a imagem não pode ser carregada.'));
+    probe.src=url;
+  });
   const activateTab = id => {
     $$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
     $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
@@ -147,8 +153,9 @@
             lastError=data.error||'Não foi possível obter a imagem.';
           }
           if(!found)throw new Error(lastError||'Nenhum dos links disponibilizou uma imagem.');
+          await verifyImage(found);
           image.src=found;image.hidden=false;
-          fetchStatus.textContent='Pré-visualização encontrada. Confirma para guardar.';
+          fetchStatus.textContent='Fotografia carregada. Confirma para guardar.';
           let saveButton=$('.bb-save-found-image',editor);
           if(!saveButton){saveButton=document.createElement('button');saveButton.type='button';saveButton.className='bb-save-found-image';saveButton.textContent='Guardar fotografia';editor.appendChild(saveButton);}
           saveButton.onclick=()=>{
@@ -171,9 +178,10 @@
           const response=await fetch('/api/product-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:source})});
           const data=await response.json().catch(()=>({}));
           if(!response.ok||!data.image)throw new Error(data.error||'Não foi possível obter a fotografia.');
+          await verifyImage(data.image);
           imageInput.value=data.image;row.dataset.image=data.image;image.src=data.image;image.hidden=false;
           emitSave($('.furniture-name',row));
-          fetchStatus.textContent='Fotografia pronta e guardada.';
+          fetchStatus.textContent='Fotografia carregada e guardada no artigo.';
         }catch(error){fetchStatus.textContent='Não foi possível validar este endereço: '+error.message;}
       });
       image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';fetchStatus.textContent='A imagem não está acessível. Experimenta validar o link.';});
