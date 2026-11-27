@@ -6,19 +6,7 @@
   const euro = value => (Number(value)||0).toLocaleString('pt-PT',{style:'currency',currency:'EUR'});
   const parseEuro = text => Number(String(text||'').replace(/[^0-9,.-]/g,'').replace(/\.(?=.*[,])/g,'').replace(',','.'))||0;
   const safeUrl = value => { try { const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:''; } catch (_) { return ''; } };
-  // As fotografias também podem ser servidas pelo endpoint local (/api/product-image?...).
-  const safeImageUrl = value => {
-    const raw=String(value||'').trim();
-    if(raw.startsWith('/')) return raw.startsWith('//')?'':raw;
-    return safeUrl(raw);
-  };
   const emitSave = element => { const target=element||$('.furniture-name'); if(target) target.dispatchEvent(new Event('input',{bubbles:true})); };
-  const verifyImage = url => new Promise((resolve,reject)=>{
-    const probe=new Image();
-    probe.onload=()=>resolve(true);
-    probe.onerror=()=>reject(new Error('O endereço foi encontrado, mas a imagem não pode ser carregada.'));
-    probe.src=url;
-  });
   const activateTab = id => {
     $$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
     $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
@@ -142,69 +130,16 @@
       const editor=document.createElement('div');editor.className='bb-photo-editor';
       const image=document.createElement('img');image.alt='Fotografia do artigo';image.hidden=true;
       const imageInput=document.createElement('input');imageInput.type='url';imageInput.className='bb-image-url';imageInput.placeholder='URL da fotografia';imageInput.setAttribute('aria-label','URL da fotografia do artigo');
-      const current=safeImageUrl(row.dataset.image||'');if(current){image.src=current;image.hidden=false;imageInput.value=current;}
-      const fetchButton=document.createElement('button');fetchButton.type='button';fetchButton.className='bb-fetch-product-image';fetchButton.textContent='Obter do link do produto';
-      const fetchStatus=document.createElement('span');fetchStatus.className='bb-image-fetch-status';fetchStatus.setAttribute('aria-live','polite');
-      const editPhoto=document.createElement('button');editPhoto.type='button';editPhoto.className='bb-photo-toggle';editPhoto.textContent='Fotografia';editPhoto.setAttribute('aria-expanded','false');
-      editPhoto.addEventListener('click',()=>{
-        const editing=editor.classList.toggle('is-editing');
-        editPhoto.setAttribute('aria-expanded',String(editing));
-        editPhoto.textContent=editing?'Fechar':'Fotografia';
-        if(editing)imageInput.focus();
-      });
-      editor.append(image,imageInput,fetchButton,fetchStatus);firstCell.append(editPhoto,editor);
-      fetchButton.addEventListener('click',async()=>{
-        const links=$('.furniture-link-row .furniture-link',row).map(input=>safeUrl(input.value)).filter(Boolean);
-        if(!links.length){fetchStatus.textContent='Adiciona primeiro o link do produto.';return;}
-        fetchButton.disabled=true;fetchStatus.textContent='A procurar fotografia…';
-        try{
-          let found=null,lastError='';
-          for(const link of links){
-            const response=await fetch('/api/product-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:link})});
-            const data=await response.json().catch(()=>({}));
-            if(response.ok&&data.image){found=data.image;break;}
-            lastError=data.error||'Não foi possível obter a imagem.';
-          }
-          if(!found)throw new Error(lastError||'Nenhum dos links disponibilizou uma imagem.');
-          await verifyImage(found);
-          image.src=found;image.hidden=false;
-          fetchStatus.textContent='Fotografia carregada. Confirma para guardar.';
-          let saveButton=$('.bb-save-found-image',editor);
-          if(!saveButton){saveButton=document.createElement('button');saveButton.type='button';saveButton.className='bb-save-found-image';saveButton.textContent='Guardar fotografia';editor.appendChild(saveButton);}
-          saveButton.onclick=()=>{
-            row.dataset.image=found;imageInput.value=found;emitSave($('.furniture-name',row));
-            fetchStatus.textContent='Fotografia guardada no artigo.';saveButton.remove();
-          };
-        }catch(error){fetchStatus.textContent=error.message;}
-        finally{fetchButton.disabled=false;}
-      });
+      const current=safeUrl(row.dataset.image||'');if(current){image.src=current;image.hidden=false;imageInput.value=current;}
+      editor.append(image,imageInput);firstCell.appendChild(editor);
       imageInput.addEventListener('input',()=>{
-        const url=safeImageUrl(imageInput.value);row.dataset.image=url;
+        const url=safeUrl(imageInput.value);row.dataset.image=url;
         if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}
         emitSave($('.furniture-name',row));
       });
-      imageInput.addEventListener('change',async()=>{
-        const source=safeImageUrl(imageInput.value);
-        if(!source)return;
-        if(source.startsWith('/')){
-          try{await verifyImage(source);row.dataset.image=source;image.src=source;image.hidden=false;emitSave($('.furniture-name',row));fetchStatus.textContent='Fotografia carregada e guardada no artigo.';}
-          catch(error){fetchStatus.textContent=error.message;}
-          return;
-        }
-        fetchStatus.textContent='A validar fotografia…';
-        try{
-          const response=await fetch('/api/product-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:source})});
-          const data=await response.json().catch(()=>({}));
-          if(!response.ok||!data.image)throw new Error(data.error||'Não foi possível obter a fotografia.');
-          await verifyImage(data.image);
-          imageInput.value=data.image;row.dataset.image=data.image;image.src=data.image;image.hidden=false;
-          emitSave($('.furniture-name',row));
-          fetchStatus.textContent='Fotografia carregada e guardada no artigo.';
-        }catch(error){fetchStatus.textContent='Não foi possível validar este endereço: '+error.message;}
-      });
-      image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';fetchStatus.textContent='A imagem não está acessível. Experimenta validar o link.';});
+      image.addEventListener('error',()=>{image.hidden=true;image.title='Não foi possível carregar esta imagem';});
     }
-    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeImageUrl(row.dataset.image)||'';preview.addEventListener('error',()=>{preview.hidden=true;});line.prepend(preview);}}
+    if(row.classList.contains('is-done')){const line=$('.view-line',row);if(line&&row.dataset.image&&!$('.bb-view-image',line)){const preview=document.createElement('img');preview.className='bb-view-image';preview.alt='';preview.src=safeUrl(row.dataset.image)||'';line.prepend(preview);}}
     const lastCell=row.lastElementChild;
     updateCompleteness(row);
     if(lastCell&&!$('.bb-duplicate',lastCell)){
@@ -216,7 +151,7 @@
   function updateCompleteness(row){const name=$('.furniture-name',row)?.value.trim()||'';const components=$$( '.furniture-link-row',row);const hasComponent=components.some(c=>($('.component-name',c)?.value.trim()||'')||($('.furniture-link',c)?.value.trim()||''));const hasPrice=components.some(c=>Number($('.component-price',c)?.value||0)>0);const incomplete=!name||!hasComponent||!hasPrice;let badge=$('.bb-incomplete',row);if(incomplete&&!badge){badge=document.createElement('span');badge.className='bb-incomplete';badge.textContent='Dados incompletos';badge.title='Falta o nome do artigo, componente/link ou preço';$('.furniture-name-wrap',row)?.appendChild(badge);}else if(!incomplete&&badge)badge.remove();}
   function enhanceAllRows(){ $$('#furniture-rooms tbody tr').forEach(enhanceRow);$$('#furniture-rooms tbody tr.is-done').forEach(row=>{const line=$('.view-line',row),url=safeUrl(row.dataset.image||'');if(line&&url&&!$('.bb-view-image',line)){const image=document.createElement('img');image.className='bb-view-image';image.alt='';image.src=url;line.prepend(image);}});$$('#furniture-rooms .category-group').forEach(group=>{const cat=(group.dataset.category||'').toLocaleLowerCase('pt-PT');group.classList.toggle('bb-appliance-group',cat.includes('eletrodoméstico')||cat.includes('máquina'));group.classList.toggle('bb-furniture-group',!cat.includes('eletrodoméstico')&&!cat.includes('máquina'));});refreshFilterOptions();applyFilters(); }
   let activeDetailRow=null;
-  function showArticleDetails(row){activeDetailRow=row;const modal=$('#bb-detail-modal');if(!modal)return;const set=(id,value)=>{const el=$('#'+id,modal);if(el)el.textContent=value;};const name=$('.furniture-name',row)?.value.trim()||'Artigo sem nome';set('bb-detail-name',name);set('bb-detail-room',$('.room-title',row.closest('.room-furniture'))?.textContent.trim()||'—');set('bb-detail-category',$('.furniture-category',row)?.value||'—');set('bb-detail-quantity',$('.furniture-qty',row)?.value||'1');set('bb-detail-total',$('.line-total',row)?.textContent||'—');const actualInput=$('#bb-detail-actual-price',modal);if(actualInput)actualInput.value=row.dataset.actualPrice||'';set('bb-detail-mode',$('.purchase-mode',row)?.selectedOptions?.[0]?.textContent||'—');const image=$('#bb-detail-image',modal),url=safeImageUrl(row.dataset.image||'');if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}const list=$('#bb-detail-components',modal);list.innerHTML='';$$( '.furniture-link-row',row).forEach(component=>{const item=document.createElement('div');item.className='bb-detail-component';const label=document.createElement('strong');label.textContent=$('.component-name',component)?.value||'Componente';const price=document.createElement('span');price.textContent=euro(Number($('.component-price',component)?.value||0))+' × '+($('.component-qty',component)?.value||'1');item.append(label,price);const link=safeUrl($('.furniture-link',component)?.value||'');if(link){const a=document.createElement('a');a.href=link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Abrir produto na loja';item.appendChild(a);}list.appendChild(item);});modal.hidden=false;}
+  function showArticleDetails(row){activeDetailRow=row;const modal=$('#bb-detail-modal');if(!modal)return;const set=(id,value)=>{const el=$('#'+id,modal);if(el)el.textContent=value;};const name=$('.furniture-name',row)?.value.trim()||'Artigo sem nome';set('bb-detail-name',name);set('bb-detail-room',$('.room-title',row.closest('.room-furniture'))?.textContent.trim()||'—');set('bb-detail-category',$('.furniture-category',row)?.value||'—');set('bb-detail-quantity',$('.furniture-qty',row)?.value||'1');set('bb-detail-total',$('.line-total',row)?.textContent||'—');const actualInput=$('#bb-detail-actual-price',modal);if(actualInput)actualInput.value=row.dataset.actualPrice||'';set('bb-detail-mode',$('.purchase-mode',row)?.selectedOptions?.[0]?.textContent||'—');const image=$('#bb-detail-image',modal),url=safeUrl(row.dataset.image||'');if(url){image.src=url;image.hidden=false;}else{image.removeAttribute('src');image.hidden=true;}const list=$('#bb-detail-components',modal);list.innerHTML='';$$( '.furniture-link-row',row).forEach(component=>{const item=document.createElement('div');item.className='bb-detail-component';const label=document.createElement('strong');label.textContent=$('.component-name',component)?.value||'Componente';const price=document.createElement('span');price.textContent=euro(Number($('.component-price',component)?.value||0))+' × '+($('.component-qty',component)?.value||'1');item.append(label,price);const link=safeUrl($('.furniture-link',component)?.value||'');if(link){const a=document.createElement('a');a.href=link;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Abrir produto na loja';item.appendChild(a);}list.appendChild(item);});modal.hidden=false;}
   const detailModal=document.createElement('div');detailModal.id='bb-detail-modal';detailModal.className='bb-detail-backdrop';detailModal.hidden=true;detailModal.innerHTML='<div class="bb-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="bb-detail-name"><button type="button" class="bb-detail-close" data-bb-detail-close aria-label="Fechar">×</button><img id="bb-detail-image" alt="Fotografia do artigo" hidden><h3 id="bb-detail-name"></h3><p><strong>Divisão:</strong> <span id="bb-detail-room"></span> · <strong>Categoria:</strong> <span id="bb-detail-category"></span></p><p><strong>Quantidade:</strong> <span id="bb-detail-quantity"></span> · <strong>Tipo:</strong> <span id="bb-detail-mode"></span></p><p><strong>Total estimado:</strong> <span id="bb-detail-total"></span></p><label class="bb-actual-label" for="bb-detail-actual-price">Total efetivamente pago (€)</label><input id="bb-detail-actual-price" type="number" min="0" step="0.01" placeholder="Ainda não registado"><h4>Componentes e ligações</h4><div id="bb-detail-components"></div></div>';document.body.appendChild(detailModal);
   document.addEventListener('click',event=>{if(event.target.closest('[data-bb-detail-close]')||event.target===detailModal)detailModal.hidden=true;});
   detailModal.addEventListener('input',event=>{if(event.target.id==='bb-detail-actual-price'&&activeDetailRow){activeDetailRow.dataset.actualPrice=event.target.value;emitSave($('.furniture-name',activeDetailRow));renderAnalysis();}});
