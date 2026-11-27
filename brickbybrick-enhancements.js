@@ -10,7 +10,7 @@
   const activateTab = id => {
     $$('.tab-btn').forEach(button=>button.classList.toggle('active',button.dataset.tab===id));
     $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==id);
-    const panel=$('#'+id); if(panel) panel.scrollIntoView({block:'start',behavior:'smooth'});
+    // Não deslocar automaticamente a página ao mudar de separador.
     refreshAll();
   };
   const nav = $('.tabs');
