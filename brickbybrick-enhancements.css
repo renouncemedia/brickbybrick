@@ -472,3 +472,7 @@ input,select,textarea{accent-color:var(--bb-sage)}
   .bb-view-image{width:38px;height:38px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Evita que o browser altere a posição do scroll quando as linhas são reorganizadas ao recalcular totais. */
+#furniture-rooms{overflow-anchor:none}
+#furniture-rooms .furniture-groups,#furniture-rooms .category-group{overflow-anchor:none}
